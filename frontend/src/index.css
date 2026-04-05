@@ -29,7 +29,7 @@ body {
 /* Info Blocks */
 .info-block {
   background: #f1f5f9;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 16px;
 }
 
@@ -63,10 +63,10 @@ body {
 }
 
 .custom-calendar .mantine-Calendar-day {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  font-size: 14px;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  font-size: 16px;
   font-weight: 500;
   color: #374151;
   display: flex;
@@ -101,12 +101,7 @@ body {
   background-color: #ffedd5;
 }
 
-/* Navigation Buttons */
-.calendar-nav-btn {
-  border: 1px solid #e5e7eb;
-  background: white;
-}
-
-.calendar-nav-btn:hover {
-  background: #f9fafb;
+/* Hide default Mantine month navigation controls */
+.custom-calendar .mantine-Calendar-monthHeader button {
+  display: none;
 }

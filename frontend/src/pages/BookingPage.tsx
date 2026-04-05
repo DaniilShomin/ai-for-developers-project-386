@@ -144,7 +144,7 @@ export function BookingPage() {
         {/* Left Panel - Information */}
         <Paper 
           p="lg" 
-          radius="xl" 
+          radius="md" 
           withBorder 
           style={{ borderColor: '#e5e7eb', background: '#fff' }}
           className="booking-panel"
@@ -177,7 +177,7 @@ export function BookingPage() {
         {/* Center Panel - Calendar */}
         <Paper 
           p="lg" 
-          radius="xl" 
+          radius="md" 
           withBorder 
           style={{ borderColor: '#e5e7eb', background: '#fff' }}
           className="booking-panel"
@@ -222,7 +222,7 @@ export function BookingPage() {
         {/* Right Panel - Slot Status */}
         <Paper 
           p="lg" 
-          radius="xl" 
+          radius="md" 
           withBorder 
           style={{ borderColor: '#e5e7eb', background: '#fff' }}
           className="booking-panel"
