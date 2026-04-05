@@ -31,9 +31,9 @@ class ApiClient {
 
   // TimeSlots API
   async getTimeSlots(ownerId: string, dateFrom?: string, dateTo?: string) {
-    const params = new URLSearchParams({ ownerId })
-    if (dateFrom) params.append('dateFrom', dateFrom)
-    if (dateTo) params.append('dateTo', dateTo)
+    const params = new URLSearchParams({ owner_id: ownerId })
+    if (dateFrom) params.append('date_from', dateFrom)
+    if (dateTo) params.append('date_to', dateTo)
     return this.request(`/timeslots?${params.toString()}`, { method: 'GET' })
   }
 
