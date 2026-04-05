@@ -185,9 +185,6 @@ export function BookingPage() {
           <Group justify="space-between" mb="md" align="center">
             <Text fw={600} size="lg">Календарь</Text>
             <Group gap="xs" align="center">
-              <Text fw={500} size="sm" c="dimmed">
-                {dayjs(currentMonth).format('MMMM YYYY')}
-              </Text>
               <ActionIcon 
                 variant="default" 
                 size="sm" 

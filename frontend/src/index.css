@@ -46,8 +46,8 @@ body {
   width: 100%;
 }
 
-/* Hide default Mantine month header since we have our own custom header with month */
-.custom-calendar .mantine-Calendar-monthHeader {
+/* Hide only buttons (arrows) in the Mantine month header, keep the month text */
+.custom-calendar .mantine-Calendar-monthHeader button {
   display: none;
 }
 
