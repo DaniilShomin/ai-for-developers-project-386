@@ -101,7 +101,10 @@ body {
   background-color: #ffedd5;
 }
 
-/* Hide default Mantine month navigation controls */
-.custom-calendar .mantine-Calendar-monthHeader button {
-  display: none;
+/* Hide default Mantine month navigation controls using attribute selectors */
+.custom-calendar div[class*="monthHeader"],
+.custom-calendar div[class*="calendarHeader"],
+.custom-calendar header[class*="month"],
+.custom-calendar [data-mantine-stop-propagation] {
+  display: none !important;
 }
