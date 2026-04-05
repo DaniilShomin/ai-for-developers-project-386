@@ -46,9 +46,19 @@ body {
   width: 100%;
 }
 
-/* Hide default Mantine month header since we have our own title */
+/* Hide default Mantine month header since we have our own custom header with month */
 .custom-calendar .mantine-Calendar-monthHeader {
   display: none;
+}
+
+/* Custom calendar navigation buttons */
+.calendar-nav-btn {
+  border: 1px solid #e5e7eb;
+  background: white;
+}
+
+.calendar-nav-btn:hover {
+  background: #f9fafb;
 }
 
 .custom-calendar .mantine-Calendar-weekdaysRow {
