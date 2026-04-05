@@ -7,3 +7,106 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* Booking Grid Layout */
+.booking-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 24px;
+  max-width: 1200px;
+}
+
+@media (max-width: 1024px) {
+  .booking-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.booking-panel {
+  height: fit-content;
+}
+
+/* Info Blocks */
+.info-block {
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+/* Custom Calendar Styles */
+.custom-calendar {
+  width: 100%;
+}
+
+.custom-calendar .mantine-Calendar-monthLevel {
+  width: 100%;
+}
+
+.custom-calendar .mantine-Calendar-month {
+  width: 100%;
+}
+
+/* Hide default Mantine month header since we have our own */
+.custom-calendar .mantine-Calendar-monthHeader {
+  display: none;
+}
+
+.custom-calendar .mantine-Calendar-weekdaysRow {
+  margin-bottom: 8px;
+}
+
+.custom-calendar .mantine-Calendar-weekday {
+  color: #9ca3af;
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.custom-calendar .mantine-Calendar-day {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2px;
+}
+
+.custom-calendar .mantine-Calendar-day[data-outside] {
+  color: #9ca3af;
+}
+
+.custom-calendar .mantine-Calendar-day[data-weekend] {
+  color: #f97316;
+}
+
+/* Selected day - orange background */
+.custom-calendar .mantine-Calendar-day[data-selected] {
+  background-color: #f97316 !important;
+  color: white !important;
+}
+
+/* Today's date - orange border */
+.custom-calendar .mantine-Calendar-day[data-today]:not([data-selected]) {
+  border: 2px solid #f97316 !important;
+  color: #f97316 !important;
+  background-color: transparent !important;
+}
+
+/* Hover state */
+.custom-calendar .mantine-Calendar-day:hover:not([data-selected]):not([data-disabled]) {
+  background-color: #ffedd5;
+}
+
+/* Navigation Buttons */
+.calendar-nav-btn {
+  border: 1px solid #e5e7eb;
+  background: white;
+}
+
+.calendar-nav-btn:hover {
+  background: #f9fafb;
+}
