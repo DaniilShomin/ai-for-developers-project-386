@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Container,
   Title,
@@ -11,6 +11,7 @@ import {
   Loader,
   Alert,
   ActionIcon,
+  TextInput,
 } from '@mantine/core'
 import { Calendar } from '@mantine/dates'
 import { 
@@ -18,7 +19,8 @@ import {
   IconChevronRight, 
   IconArrowLeft,
   IconArrowRight,
-  IconAlertCircle
+  IconAlertCircle,
+  IconCheck
 } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import { apiClient } from '../api/client'
@@ -37,56 +39,101 @@ interface TimeSlot {
 export function BookingPage() {
   const navigate = useNavigate()
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
-  const [slots, setSlots] = useState<TimeSlot[]>([])
+  const [selectedSlot, setSelectedSlot] = useState<{ time: string; label: string } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(new Date())
-
-  // Fetch slots when date is selected
-  useEffect(() => {
-    if (!selectedDate) {
-      setSlots([])
-      setSelectedSlot(null)
-      return
-    }
-    
-    const fetchSlots = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const dateStr = dayjs(selectedDate).format('YYYY-MM-DD')
-        const dateFrom = new Date(`${dateStr}T00:00:00`).toISOString()
-        const dateTo = new Date(`${dateStr}T23:59:59`).toISOString()
-        
-        const data = await apiClient.getTimeSlots('owner-1', dateFrom, dateTo)
-        setSlots((data as TimeSlot[]).filter(s => !s.isBooked))
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Не удалось загрузить слоты')
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    fetchSlots()
-  }, [selectedDate])
+  
+  // Form state
+  const [showForm, setShowForm] = useState(false)
+  const [bookerName, setBookerName] = useState('')
+  const [bookerEmail, setBookerEmail] = useState('')
+  const [formErrors, setFormErrors] = useState<{name?: string; email?: string}>({})
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date)
     setSelectedSlot(null)
+    setShowForm(false)
+    setSuccess(false)
+    setError(null)
   }
 
-  const handleSlotSelect = (slot: TimeSlot) => {
+  const handleSlotSelect = (slot: { time: string; label: string }) => {
     setSelectedSlot(slot)
+    setShowForm(false)
+    setSuccess(false)
   }
 
   const handleBack = () => {
-    navigate('/')
+    if (showForm) {
+      setShowForm(false)
+    } else {
+      navigate('/')
+    }
   }
 
   const handleContinue = () => {
-    if (selectedSlot) {
-      console.log('Продолжить с:', selectedSlot)
+    if (selectedSlot && selectedDate) {
+      setShowForm(true)
+    }
+  }
+
+  const validateForm = () => {
+    const errors: {name?: string; email?: string} = {}
+    
+    if (!bookerName.trim()) {
+      errors.name = 'Введите имя'
+    }
+    
+    if (!bookerEmail.trim()) {
+      errors.email = 'Введите email'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bookerEmail)) {
+      errors.email = 'Некорректный email'
+    }
+    
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleSubmit = async () => {
+    if (!validateForm() || !selectedDate || !selectedSlot) {
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    
+    try {
+      // Parse the selected time slot
+      const [startHour, startMin] = selectedSlot.time.split(':').map(Number)
+      
+      // Create date with selected time
+      const slotDate = new Date(selectedDate)
+      slotDate.setHours(startHour, startMin, 0, 0)
+      
+      // Create time slot first
+      const timeSlotData = await apiClient.createTimeSlot({
+        ownerId: 'owner-1',
+        startTime: slotDate.toISOString()
+      }) as TimeSlot
+      
+      // Then create booking
+      await apiClient.createBooking({
+        timeSlotId: timeSlotData.id,
+        bookerName: bookerName.trim(),
+        bookerEmail: bookerEmail.trim(),
+      })
+      
+      setSuccess(true)
+      setShowForm(false)
+      setSelectedSlot(null)
+      setBookerName('')
+      setBookerEmail('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось создать запись')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -116,14 +163,6 @@ export function BookingPage() {
 
   const timeSlots = generateTimeSlots()
 
-  // Filter API slots to match our time slots
-  const getSlotForTime = (timeLabel: string) => {
-    return slots.find(slot => {
-      const start = dayjs(slot.startTime).format('HH:mm')
-      return timeLabel.startsWith(start)
-    })
-  }
-
   // Format date for display: "воскресенье, 26 апреля"
   const formatSelectedDate = (date: Date | null) => {
     if (!date) return 'Дата не выбрана'
@@ -131,9 +170,62 @@ export function BookingPage() {
   }
 
   // Format time for display: "09:00 - 09:30"
-  const formatSelectedTime = (slot: TimeSlot | null) => {
+  const formatSelectedTime = (slot: { time: string; label: string } | null) => {
     if (!slot) return 'Время не выбрано'
-    return `${dayjs(slot.startTime).format('HH:mm')} - ${dayjs(slot.endTime).format('HH:mm')}`
+    return slot.label
+  }
+
+  if (success) {
+    return (
+      <Container size="xl" py={40}>
+        <Paper 
+          p="xl" 
+          radius="md" 
+          withBorder 
+          style={{ borderColor: '#e5e7eb', background: '#fff', maxWidth: 500, margin: '0 auto', textAlign: 'center' }}
+        >
+          <Box mb="lg">
+            <IconCheck size={64} color="#22c55e" style={{ margin: '0 auto' }} />
+          </Box>
+          <Title order={2} mb="md" style={{ fontWeight: 700 }}>
+            Запись подтверждена!
+          </Title>
+          <Text c="dimmed" mb="xl">
+            Мы отправили подтверждение на ваш email. Ждём вас в назначенное время.
+          </Text>
+          <Group justify="center">
+            <Button 
+              color="orange"
+              onClick={() => navigate('/events')}
+              radius="md"
+              styles={{
+                root: {
+                  backgroundColor: '#f97316',
+                }
+              }}
+            >
+              Мои записи
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setSuccess(false)
+                setSelectedDate(null)
+              }}
+              radius="md"
+              styles={{
+                root: {
+                  borderColor: '#e5e7eb',
+                  color: '#374151',
+                }
+              }}
+            >
+              Новая запись
+            </Button>
+          </Group>
+        </Paper>
+      </Container>
+    )
   }
 
   return (
@@ -164,7 +256,7 @@ export function BookingPage() {
             
             <Box className="info-block">
               <Text size="sm" c="dimmed" mb={4}>Свободно</Text>
-              <Text fw={500} size="md">{slots.length} слотов</Text>
+              <Text fw={500} size="md">{selectedDate ? timeSlots.length : 0} слотов</Text>
             </Box>
             
             <Box className="info-block">
@@ -174,7 +266,7 @@ export function BookingPage() {
           </Stack>
         </Paper>
 
-        {/* Center Panel - Calendar */}
+        {/* Center Panel - Calendar or Form */}
         <Paper 
           p="lg" 
           radius="md" 
@@ -182,41 +274,81 @@ export function BookingPage() {
           style={{ borderColor: '#e5e7eb', background: '#fff' }}
           className="booking-panel"
         >
-          <Group justify="space-between" mb="md" align="center">
-            <Text fw={600} size="lg">Календарь</Text>
-            <Group gap="xs" align="center">
-              <ActionIcon 
-                variant="default" 
-                size="sm" 
-                radius="md"
-                onClick={handlePrevMonth}
-                className="calendar-nav-btn"
-              >
-                <IconChevronLeft size={16} />
-              </ActionIcon>
-              <ActionIcon 
-                variant="default" 
-                size="sm" 
-                radius="md"
-                onClick={handleNextMonth}
-                className="calendar-nav-btn"
-              >
-                <IconChevronRight size={16} />
-              </ActionIcon>
-            </Group>
-          </Group>
-          
-          <Calendar
-            locale="ru"
-            date={currentMonth}
-            onDateChange={setCurrentMonth}
-            minDate={new Date()}
-            className="custom-calendar"
-            getDayProps={(date) => ({
-              selected: selectedDate ? dayjs(date).isSame(selectedDate, 'date') : false,
-              onClick: () => handleDateSelect(new Date(date)),
-            })}
-          />
+          {!showForm ? (
+            <>
+              <Group justify="space-between" mb="md" align="center">
+                <Text fw={600} size="lg">Календарь</Text>
+                <Group gap="xs" align="center">
+                  <ActionIcon 
+                    variant="default" 
+                    size="sm" 
+                    radius="md"
+                    onClick={handlePrevMonth}
+                    className="calendar-nav-btn"
+                  >
+                    <IconChevronLeft size={16} />
+                  </ActionIcon>
+                  <ActionIcon 
+                    variant="default" 
+                    size="sm" 
+                    radius="md"
+                    onClick={handleNextMonth}
+                    className="calendar-nav-btn"
+                  >
+                    <IconChevronRight size={16} />
+                  </ActionIcon>
+                </Group>
+              </Group>
+              
+              <Calendar
+                locale="ru"
+                date={currentMonth}
+                onDateChange={setCurrentMonth}
+                minDate={new Date()}
+                className="custom-calendar"
+                getDayProps={(date) => ({
+                  selected: selectedDate ? dayjs(date).isSame(selectedDate, 'date') : false,
+                  onClick: () => handleDateSelect(new Date(date)),
+                })}
+              />
+            </>
+          ) : (
+            <>
+              <Group justify="space-between" mb="lg" align="center">
+                <Text fw={600} size="lg">Ваши данные</Text>
+              </Group>
+              
+              <Stack gap="md">
+                <Text size="sm" c="dimmed">
+                  Дата: {formatSelectedDate(selectedDate)}, время: {formatSelectedTime(selectedSlot)}
+                </Text>
+                
+                <TextInput
+                  label="Имя"
+                  placeholder="Введите ваше имя"
+                  value={bookerName}
+                  onChange={(e) => setBookerName(e.target.value)}
+                  error={formErrors.name}
+                  required
+                />
+                
+                <TextInput
+                  label="Email"
+                  placeholder="your@email.com"
+                  value={bookerEmail}
+                  onChange={(e) => setBookerEmail(e.target.value)}
+                  error={formErrors.email}
+                  required
+                />
+                
+                {error && (
+                  <Alert color="red" icon={<IconAlertCircle size={16} />}>
+                    {error}
+                  </Alert>
+                )}
+              </Stack>
+            </>
+          )}
         </Paper>
 
         {/* Right Panel - Slot Status */}
@@ -233,25 +365,19 @@ export function BookingPage() {
             <Text c="dimmed">Выберите дату в календаре.</Text>
           )}
           
-          {selectedDate && loading && (
-            <Group justify="center" py="xl">
-              <Loader />
-            </Group>
+          {selectedDate && showForm && (
+            <Stack gap="xs" mb="xl">
+              <Text size="sm" c="dimmed" mb="md">
+                Проверьте данные и нажмите "Записаться"
+              </Text>
+            </Stack>
           )}
           
-          {selectedDate && error && (
-            <Alert color="red" icon={<IconAlertCircle size={16} />} mb="md">
-              {error}
-            </Alert>
-          )}
-          
-          {selectedDate && !loading && !error && (
+          {selectedDate && !showForm && (
             <>
               <Stack gap="xs" mb="xl" style={{ maxHeight: '380px', overflowY: 'auto' }}>
-                {timeSlots.slice(0, 6).map((slot) => {
-                  const apiSlot = getSlotForTime(slot.label)
-                  const isSelected = selectedSlot?.id === apiSlot?.id
-                  const hasSlot = !!apiSlot
+                {timeSlots.map((slot) => {
+                  const isSelected = selectedSlot?.time === slot.time
                   
                   return (
                     <Button
@@ -260,8 +386,7 @@ export function BookingPage() {
                       color={isSelected ? 'orange' : undefined}
                       fullWidth
                       justify="space-between"
-                      disabled={!hasSlot}
-                      onClick={() => apiSlot && handleSlotSelect(apiSlot)}
+                      onClick={() => handleSlotSelect(slot)}
                       styles={{
                         root: {
                           border: isSelected ? 'none' : '1px solid #e5e7eb',
@@ -281,8 +406,8 @@ export function BookingPage() {
                       }}
                     >
                       <span>{slot.label}</span>
-                      <span style={{ color: isSelected ? 'rgba(255,255,255,0.8)' : '#9ca3af', fontSize: '14px' }}>
-                        {hasSlot ? 'Свободно' : '—'}
+                      <span style={{ color: isSelected ? 'rgba(255,255,255,0.8)' : '#22c55e', fontSize: '14px' }}>
+                        Свободно
                       </span>
                     </Button>
                   )
@@ -317,6 +442,47 @@ export function BookingPage() {
                   }}
                 >
                   Продолжить
+                </Button>
+              </Group>
+            </>
+          )}
+          
+          {selectedDate && showForm && (
+            <>
+              <Stack gap="xs" mb="xl" style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                <Text size="sm" c="dimmed" mb="md">
+                  Выбранное время: {formatSelectedTime(selectedSlot)}
+                </Text>
+              </Stack>
+              
+              <Group justify="space-between" mt="auto">
+                <Button 
+                  variant="outline" 
+                  leftSection={<IconArrowLeft size={16} />}
+                  onClick={handleBack}
+                  radius="md"
+                  styles={{
+                    root: {
+                      borderColor: '#e5e7eb',
+                      color: '#374151',
+                    }
+                  }}
+                >
+                  Назад
+                </Button>
+                <Button
+                  color="orange"
+                  rightSection={loading ? <Loader size={16} color="white" /> : <IconCheck size={16} />}
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  radius="md"
+                  styles={{
+                    root: {
+                      backgroundColor: '#f97316',
+                    }
+                  }}
+                >
+                  {loading ? 'Создание...' : 'Записаться'}
                 </Button>
               </Group>
             </>

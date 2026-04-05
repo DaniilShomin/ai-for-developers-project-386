@@ -38,9 +38,13 @@ class ApiClient {
   }
 
   async createTimeSlot(data: { ownerId: string; startTime: string }) {
+    const body = {
+      owner_id: data.ownerId,
+      start_time: data.startTime
+    }
     return this.request('/timeslots', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(body),
     })
   }
 
@@ -73,9 +77,16 @@ class ApiClient {
     bookerPhone?: string
     notes?: string
   }) {
+    const body = {
+      time_slot_id: data.timeSlotId,
+      booker_name: data.bookerName,
+      booker_email: data.bookerEmail,
+      booker_phone: data.bookerPhone,
+      notes: data.notes
+    }
     return this.request('/bookings', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(body),
     })
   }
 
