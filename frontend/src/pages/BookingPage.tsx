@@ -10,12 +10,9 @@ import {
   Stack,
   Loader,
   Alert,
-  ActionIcon,
 } from '@mantine/core'
 import { Calendar } from '@mantine/dates'
 import { 
-  IconChevronLeft, 
-  IconChevronRight, 
   IconArrowLeft,
   IconArrowRight,
   IconAlertCircle
@@ -88,14 +85,6 @@ export function BookingPage() {
     if (selectedSlot) {
       console.log('Продолжить с:', selectedSlot)
     }
-  }
-
-  const handlePrevMonth = () => {
-    setCurrentMonth(dayjs(currentMonth).subtract(1, 'month').toDate())
-  }
-
-  const handleNextMonth = () => {
-    setCurrentMonth(dayjs(currentMonth).add(1, 'month').toDate())
   }
 
   // Generate time slots for display (09:00 - 18:00, every 30 min)
@@ -182,30 +171,6 @@ export function BookingPage() {
           style={{ borderColor: '#e5e7eb', background: '#fff' }}
           className="booking-panel"
         >
-          <Group justify="space-between" mb="lg" align="center">
-            <Text fw={600} size="lg">Календарь</Text>
-            <Group gap="xs">
-              <ActionIcon 
-                variant="default" 
-                size="md" 
-                radius="md"
-                onClick={handlePrevMonth}
-                className="calendar-nav-btn"
-              >
-                <IconChevronLeft size={18} />
-              </ActionIcon>
-              <ActionIcon 
-                variant="default" 
-                size="md" 
-                radius="md"
-                onClick={handleNextMonth}
-                className="calendar-nav-btn"
-              >
-                <IconChevronRight size={18} />
-              </ActionIcon>
-            </Group>
-          </Group>
-          
           <Calendar
             locale="ru"
             date={currentMonth}
