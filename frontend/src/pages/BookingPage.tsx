@@ -12,6 +12,7 @@ import {
   Alert,
   ActionIcon,
   TextInput,
+  Grid,
 } from '@mantine/core'
 import { Calendar } from '@mantine/dates'
 import { 
@@ -228,6 +229,123 @@ export function BookingPage() {
     )
   }
 
+  // Confirmation form view - 2 column layout
+  if (showForm) {
+    return (
+      <Container size="xl" py={40}>
+        <Title order={2} mb="xl" style={{ fontWeight: 700 }}>Запись на звонок</Title>
+        
+        <Grid gutter="xl">
+          {/* Left Panel - Information */}
+          <Grid.Col span={5}>
+            <Paper 
+              p="lg" 
+              radius="md" 
+              withBorder 
+              style={{ borderColor: '#e5e7eb', background: '#fff', height: '100%' }}
+            >
+              <Text fw={600} size="lg" mb="lg">Информация</Text>
+              
+              <Stack gap="md">
+                <Box className="info-block">
+                  <Text size="sm" c="dimmed" mb={4}>Выбранная дата</Text>
+                  <Text fw={500} size="md">{formatSelectedDate(selectedDate)}</Text>
+                </Box>
+                
+                <Box className="info-block">
+                  <Text size="sm" c="dimmed" mb={4}>Выбранное время</Text>
+                  <Text fw={500} size="md">{formatSelectedTime(selectedSlot)}</Text>
+                </Box>
+                
+                <Box className="info-block">
+                  <Text size="sm" c="dimmed" mb={4}>Свободно</Text>
+                  <Text fw={500} size="md">{selectedDate ? timeSlots.length : 0}</Text>
+                </Box>
+                
+                <Box className="info-block">
+                  <Text size="sm" c="dimmed" mb={4}>Длительности в дне</Text>
+                  <Text fw={500} size="md">30 мин</Text>
+                </Box>
+              </Stack>
+            </Paper>
+          </Grid.Col>
+
+          {/* Right Panel - Confirmation Form */}
+          <Grid.Col span={7}>
+            <Paper 
+              p="lg" 
+              radius="md" 
+              withBorder 
+              style={{ borderColor: '#e5e7eb', background: '#fff', height: '100%' }}
+            >
+              <Group justify="space-between" mb="lg" align="center">
+                <Text fw={600} size="lg">Подтверждение записи</Text>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowForm(false)}
+                  radius="md"
+                  size="sm"
+                  styles={{
+                    root: {
+                      borderColor: '#e5e7eb',
+                      color: '#374151',
+                    }
+                  }}
+                >
+                  Изменить
+                </Button>
+              </Group>
+              
+              <Stack gap="md">
+                <TextInput
+                  placeholder="Имя"
+                  value={bookerName}
+                  onChange={(e) => setBookerName(e.target.value)}
+                  error={formErrors.name}
+                  radius="md"
+                  size="md"
+                />
+                
+                <TextInput
+                  placeholder="Email"
+                  value={bookerEmail}
+                  onChange={(e) => setBookerEmail(e.target.value)}
+                  error={formErrors.email}
+                  radius="md"
+                  size="md"
+                />
+                
+                {error && (
+                  <Alert color="red" icon={<IconAlertCircle size={16} />}>
+                    {error}
+                  </Alert>
+                )}
+                
+                <Button
+                  color="orange"
+                  fullWidth
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  radius="md"
+                  size="md"
+                  mt="sm"
+                  styles={{
+                    root: {
+                      backgroundColor: '#f97316',
+                    }
+                  }}
+                >
+                  {loading ? <Loader size="sm" color="white" /> : 'Подтвердить запись'}
+                </Button>
+              </Stack>
+            </Paper>
+          </Grid.Col>
+        </Grid>
+      </Container>
+    )
+  }
+
+  // Default view - 3 column layout
   return (
     <Container size="xl" py={40}>
       <Title order={2} mb="xl" style={{ fontWeight: 700 }}>Запись на звонок</Title>
@@ -266,7 +384,7 @@ export function BookingPage() {
           </Stack>
         </Paper>
 
-        {/* Center Panel - Calendar or Form */}
+        {/* Center Panel - Calendar */}
         <Paper 
           p="lg" 
           radius="md" 
@@ -274,81 +392,41 @@ export function BookingPage() {
           style={{ borderColor: '#e5e7eb', background: '#fff' }}
           className="booking-panel"
         >
-          {!showForm ? (
-            <>
-              <Group justify="space-between" mb="md" align="center">
-                <Text fw={600} size="lg">Календарь</Text>
-                <Group gap="xs" align="center">
-                  <ActionIcon 
-                    variant="default" 
-                    size="sm" 
-                    radius="md"
-                    onClick={handlePrevMonth}
-                    className="calendar-nav-btn"
-                  >
-                    <IconChevronLeft size={16} />
-                  </ActionIcon>
-                  <ActionIcon 
-                    variant="default" 
-                    size="sm" 
-                    radius="md"
-                    onClick={handleNextMonth}
-                    className="calendar-nav-btn"
-                  >
-                    <IconChevronRight size={16} />
-                  </ActionIcon>
-                </Group>
-              </Group>
-              
-              <Calendar
-                locale="ru"
-                date={currentMonth}
-                onDateChange={setCurrentMonth}
-                minDate={new Date()}
-                className="custom-calendar"
-                getDayProps={(date) => ({
-                  selected: selectedDate ? dayjs(date).isSame(selectedDate, 'date') : false,
-                  onClick: () => handleDateSelect(new Date(date)),
-                })}
-              />
-            </>
-          ) : (
-            <>
-              <Group justify="space-between" mb="lg" align="center">
-                <Text fw={600} size="lg">Ваши данные</Text>
-              </Group>
-              
-              <Stack gap="md">
-                <Text size="sm" c="dimmed">
-                  Дата: {formatSelectedDate(selectedDate)}, время: {formatSelectedTime(selectedSlot)}
-                </Text>
-                
-                <TextInput
-                  label="Имя"
-                  placeholder="Введите ваше имя"
-                  value={bookerName}
-                  onChange={(e) => setBookerName(e.target.value)}
-                  error={formErrors.name}
-                  required
-                />
-                
-                <TextInput
-                  label="Email"
-                  placeholder="your@email.com"
-                  value={bookerEmail}
-                  onChange={(e) => setBookerEmail(e.target.value)}
-                  error={formErrors.email}
-                  required
-                />
-                
-                {error && (
-                  <Alert color="red" icon={<IconAlertCircle size={16} />}>
-                    {error}
-                  </Alert>
-                )}
-              </Stack>
-            </>
-          )}
+          <Group justify="space-between" mb="md" align="center">
+            <Text fw={600} size="lg">Календарь</Text>
+            <Group gap="xs" align="center">
+              <ActionIcon 
+                variant="default" 
+                size="sm" 
+                radius="md"
+                onClick={handlePrevMonth}
+                className="calendar-nav-btn"
+              >
+                <IconChevronLeft size={16} />
+              </ActionIcon>
+              <ActionIcon 
+                variant="default" 
+                size="sm" 
+                radius="md"
+                onClick={handleNextMonth}
+                className="calendar-nav-btn"
+              >
+                <IconChevronRight size={16} />
+              </ActionIcon>
+            </Group>
+          </Group>
+          
+          <Calendar
+            locale="ru"
+            date={currentMonth}
+            onDateChange={setCurrentMonth}
+            minDate={new Date()}
+            className="custom-calendar"
+            getDayProps={(date) => ({
+              selected: selectedDate ? dayjs(date).isSame(selectedDate, 'date') : false,
+              onClick: () => handleDateSelect(new Date(date)),
+            })}
+          />
         </Paper>
 
         {/* Right Panel - Slot Status */}
@@ -365,17 +443,9 @@ export function BookingPage() {
             <Text c="dimmed">Выберите дату в календаре.</Text>
           )}
           
-          {selectedDate && showForm && (
-            <Stack gap="xs" mb="xl">
-              <Text size="sm" c="dimmed" mb="md">
-                Проверьте данные и нажмите "Записаться"
-              </Text>
-            </Stack>
-          )}
-          
-          {selectedDate && !showForm && (
+          {selectedDate && (
             <>
-              <Stack gap="xs" mb="xl" style={{ maxHeight: '380px', overflowY: 'auto' }}>
+              <Stack gap="xs" mb="xl" style={{ maxHeight: '420px', overflowY: 'auto' }}>
                 {timeSlots.map((slot) => {
                   const isSelected = selectedSlot?.time === slot.time
                   
@@ -392,7 +462,7 @@ export function BookingPage() {
                           border: isSelected ? 'none' : '1px solid #e5e7eb',
                           backgroundColor: isSelected ? '#f97316' : '#fff',
                           color: isSelected ? '#fff' : '#000',
-                          height: '44px',
+                          height: '56px',
                           borderRadius: '8px',
                         },
                         label: {
@@ -442,47 +512,6 @@ export function BookingPage() {
                   }}
                 >
                   Продолжить
-                </Button>
-              </Group>
-            </>
-          )}
-          
-          {selectedDate && showForm && (
-            <>
-              <Stack gap="xs" mb="xl" style={{ maxHeight: '380px', overflowY: 'auto' }}>
-                <Text size="sm" c="dimmed" mb="md">
-                  Выбранное время: {formatSelectedTime(selectedSlot)}
-                </Text>
-              </Stack>
-              
-              <Group justify="space-between" mt="auto">
-                <Button 
-                  variant="outline" 
-                  leftSection={<IconArrowLeft size={16} />}
-                  onClick={handleBack}
-                  radius="md"
-                  styles={{
-                    root: {
-                      borderColor: '#e5e7eb',
-                      color: '#374151',
-                    }
-                  }}
-                >
-                  Назад
-                </Button>
-                <Button
-                  color="orange"
-                  rightSection={loading ? <Loader size={16} color="white" /> : <IconCheck size={16} />}
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  radius="md"
-                  styles={{
-                    root: {
-                      backgroundColor: '#f97316',
-                    }
-                  }}
-                >
-                  {loading ? 'Создание...' : 'Записаться'}
                 </Button>
               </Group>
             </>
