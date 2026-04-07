@@ -13,8 +13,12 @@ import {
 import { IconAlertCircle, IconCalendar } from '@tabler/icons-react'
 import { apiClient } from '../api/client'
 import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
 import 'dayjs/locale/ru'
 
+dayjs.extend(utc)
+dayjs.extend(timezone)
 dayjs.locale('ru')
 
 interface Booking {
@@ -83,11 +87,11 @@ export function EventsPage() {
                 <Group gap="xs" mt={4}>
                   <IconCalendar size={16} color="#6b7280" />
                   <Text size="sm" c="dimmed">
-                    Слот: {dayjs(booking.timeSlot.startTime).format('YYYY-MM-DD-HH:mm')}
+                    Слот: {dayjs.utc(booking.timeSlot.startTime).local().format('YYYY-MM-DD-HH:mm')}
                   </Text>
                 </Group>
                 <Text size="sm" c="dimmed">
-                  Создано: {dayjs(booking.createdAt).format('DD.MM.YYYY, HH:mm')}
+                  Создано: {dayjs.utc(booking.createdAt).local().format('DD.MM.YYYY, HH:mm')}
                 </Text>
               </Stack>
               <Badge color="green" variant="light">Подтверждено</Badge>

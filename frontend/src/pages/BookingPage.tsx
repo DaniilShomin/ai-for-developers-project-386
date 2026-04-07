@@ -27,8 +27,12 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { apiClient } from '../api/client'
 import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
 import 'dayjs/locale/ru'
 
+dayjs.extend(utc)
+dayjs.extend(timezone)
 dayjs.locale('ru')
 
 interface TimeSlot {
@@ -182,10 +186,11 @@ export function BookingPage() {
         if (slotTime1.isBefore(now)) {
           // Skip this slot, it's in the past
         } else {
-          // Check if already booked
-          const isBooked1 = existingSlots.some(slot => 
-            dayjs(slot.startTime).hour() === hour && dayjs(slot.startTime).minute() === 0
-          )
+        // Check if already booked - compare with UTC time converted to local
+          const isBooked1 = existingSlots.some(slot => {
+            const slotTimeLocal = dayjs.utc(slot.startTime).local()
+            return slotTimeLocal.hour() === hour && slotTimeLocal.minute() === 0
+          })
           if (!isBooked1) {
             slots.push({
               time: time1,
@@ -197,10 +202,11 @@ export function BookingPage() {
         if (slotTime2.isBefore(now)) {
           // Skip this slot, it's in the past
         } else {
-          // Check if already booked
-          const isBooked2 = existingSlots.some(slot => 
-            dayjs(slot.startTime).hour() === hour && dayjs(slot.startTime).minute() === 30
-          )
+          // Check if already booked - compare with UTC time converted to local
+          const isBooked2 = existingSlots.some(slot => {
+            const slotTimeLocal = dayjs.utc(slot.startTime).local()
+            return slotTimeLocal.hour() === hour && slotTimeLocal.minute() === 30
+          })
           if (!isBooked2) {
             slots.push({
               time: time2,
@@ -210,9 +216,10 @@ export function BookingPage() {
         }
       } else {
         // Not today - only check if booked
-        const isBooked1 = existingSlots.some(slot => 
-          dayjs(slot.startTime).hour() === hour && dayjs(slot.startTime).minute() === 0
-        )
+        const isBooked1 = existingSlots.some(slot => {
+          const slotTimeLocal = dayjs.utc(slot.startTime).local()
+          return slotTimeLocal.hour() === hour && slotTimeLocal.minute() === 0
+        })
         if (!isBooked1) {
           slots.push({
             time: time1,
@@ -220,9 +227,10 @@ export function BookingPage() {
           })
         }
         
-        const isBooked2 = existingSlots.some(slot => 
-          dayjs(slot.startTime).hour() === hour && dayjs(slot.startTime).minute() === 30
-        )
+        const isBooked2 = existingSlots.some(slot => {
+          const slotTimeLocal = dayjs.utc(slot.startTime).local()
+          return slotTimeLocal.hour() === hour && slotTimeLocal.minute() === 30
+        })
         if (!isBooked2) {
           slots.push({
             time: time2,
