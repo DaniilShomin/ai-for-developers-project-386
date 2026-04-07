@@ -59,8 +59,8 @@ class ApiClient {
     status?: 'confirmed' | 'cancelled'
   ) {
     const params = new URLSearchParams()
-    if (ownerId) params.append('ownerId', ownerId)
-    if (bookerId) params.append('bookerId', bookerId)
+    if (ownerId) params.append('owner_id', ownerId)
+    if (bookerId) params.append('booker_id', bookerId)
     if (status) params.append('status', status)
     const query = params.toString() ? `?${params.toString()}` : ''
     return this.request(`/bookings${query}`, { method: 'GET' })

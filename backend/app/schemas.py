@@ -3,6 +3,12 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, field_validator
 
 
+def to_camel(string: str) -> str:
+    """Convert snake_case to camelCase."""
+    components = string.split("_")
+    return components[0] + "".join(word.capitalize() for word in components[1:])
+
+
 # Enums
 BookingStatus = Literal["confirmed", "cancelled"]
 
@@ -15,7 +21,9 @@ class ErrorResponse(BaseModel):
 
 # ============== Booker Schemas ==============
 class Booker(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
 
     id: str
     name: str
@@ -26,7 +34,9 @@ class Booker(BaseModel):
 
 # ============== TimeSlot Schemas ==============
 class TimeSlot(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
 
     id: str
     owner_id: str
@@ -37,6 +47,8 @@ class TimeSlot(BaseModel):
 
 
 class TimeSlotCreate(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     owner_id: str
     start_time: datetime
 
@@ -50,7 +62,9 @@ class TimeSlotCreate(BaseModel):
 
 # ============== Booking Schemas ==============
 class Booking(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
 
     id: str
     time_slot_id: str
@@ -66,6 +80,8 @@ class BookingWithDetails(Booking):
 
 
 class BookingCreate(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     time_slot_id: str
     booker_name: str
     booker_email: str
