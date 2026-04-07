@@ -1,5 +1,16 @@
 .PHONY: help install install-backend install-frontend dev dev-backend dev-frontend build build-frontend lint lint-backend format test test-backend clean db-init
 
+# Default values (can be overridden via .env or environment variables)
+BACKEND_PORT ?= 8000
+BACKEND_HOST ?= 0.0.0.0
+FRONTEND_PORT ?= 3000
+
+# Load .env file if it exists
+ifneq (,$(wildcard .env))
+	include .env
+	export
+endif
+
 # Default target
 help:
 	@echo "Available commands:"
@@ -7,8 +18,8 @@ help:
 	@echo "  make install-backend  - Install Python dependencies"
 	@echo "  make install-frontend - Install Node.js dependencies"
 	@echo "  make dev              - Run backend and frontend in parallel"
-	@echo "  make dev-backend      - Run backend server (port 8000)"
-	@echo "  make dev-frontend     - Run frontend dev server (port 3000)"
+	@echo "  make dev-backend      - Run backend server (port $(BACKEND_PORT))"
+	@echo "  make dev-frontend     - Run frontend dev server (port $(FRONTEND_PORT))"
 	@echo "  make build            - Build frontend for production"
 	@echo "  make lint             - Run ruff linter on backend"
 	@echo "  make format           - Auto-format Python code with ruff"
@@ -16,6 +27,11 @@ help:
 	@echo "  make test             - Run all tests"
 	@echo "  make test-backend     - Run backend tests with pytest"
 	@echo "  make clean            - Clean cache files and artifacts"
+	@echo ""
+	@echo "Environment variables (or .env file):"
+	@echo "  BACKEND_PORT          - Backend server port (default: 8000)"
+	@echo "  BACKEND_HOST          - Backend server host (default: 0.0.0.0)"
+	@echo "  FRONTEND_PORT         - Frontend dev server port (default: 3000)"
 
 # Installation
 install: install-backend install-frontend
@@ -31,18 +47,18 @@ install-frontend:
 # Development servers
 dev:
 	@echo "Starting backend and frontend..."
-	@echo "Backend: http://localhost:8000"
-	@echo "Frontend: http://localhost:3000"
-	@(cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload &) && \
+	@echo "Backend: http://localhost:$(BACKEND_PORT)"
+	@echo "Frontend: http://localhost:$(FRONTEND_PORT)"
+	@(cd backend && uvicorn app.main:app --host $(BACKEND_HOST) --port $(BACKEND_PORT) --reload &) && \
 	 sleep 2 && \
 	 cd frontend && npm run dev
 
 dev-backend:
-	@echo "Starting backend development server on port 8000..."
-	cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+	@echo "Starting backend development server on port $(BACKEND_PORT)..."
+	cd backend && uvicorn app.main:app --host $(BACKEND_HOST) --port $(BACKEND_PORT) --reload
 
 dev-frontend:
-	@echo "Starting frontend development server on port 3000..."
+	@echo "Starting frontend development server on port $(FRONTEND_PORT)..."
 	cd frontend && npm run dev
 
 # Build
