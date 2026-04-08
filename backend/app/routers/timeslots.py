@@ -25,7 +25,7 @@ def list_time_slots(
     Получить список доступных временных слотов.
     """
     query = db.query(TimeSlot).filter(
-        TimeSlot.owner_id == owner_id, TimeSlot.is_booked.is_(False)
+        TimeSlot.owner_id == owner_id, TimeSlot.is_booked.is_(True)
     )
 
     if date_from:
