@@ -69,9 +69,9 @@ export function BookingPage() {
     // Load existing time slots for selected date
     setSlotsLoading(true)
     try {
-      const dateStr = dayjs(date).format('YYYY-MM-DD')
-      const dateFrom = `${dateStr}T00:00:00`
-      const dateTo = `${dateStr}T23:59:59`
+      // Use ISO format with timezone to properly handle date ranges
+      const dateFrom = dayjs(date).startOf('day').toISOString()
+      const dateTo = dayjs(date).endOf('day').toISOString()
       const slots = await apiClient.getTimeSlots('owner-1', dateFrom, dateTo) as TimeSlot[]
       setExistingSlots(slots)
     } catch (err) {
@@ -186,10 +186,12 @@ export function BookingPage() {
         if (slotTime1.isBefore(now)) {
           // Skip this slot, it's in the past
         } else {
-        // Check if already booked - compare with UTC time converted to local
+          // Check if already booked - compare with UTC time converted to local
           const isBooked1 = existingSlots.some(slot => {
             const slotTimeLocal = dayjs.utc(slot.startTime).local()
-            return slotTimeLocal.hour() === hour && slotTimeLocal.minute() === 0
+            return slotTimeLocal.isSame(selectedDate, 'day') &&
+                   slotTimeLocal.hour() === hour &&
+                   slotTimeLocal.minute() === 0
           })
           if (!isBooked1) {
             slots.push({
@@ -205,7 +207,9 @@ export function BookingPage() {
           // Check if already booked - compare with UTC time converted to local
           const isBooked2 = existingSlots.some(slot => {
             const slotTimeLocal = dayjs.utc(slot.startTime).local()
-            return slotTimeLocal.hour() === hour && slotTimeLocal.minute() === 30
+            return slotTimeLocal.isSame(selectedDate, 'day') &&
+                   slotTimeLocal.hour() === hour &&
+                   slotTimeLocal.minute() === 30
           })
           if (!isBooked2) {
             slots.push({
@@ -218,7 +222,9 @@ export function BookingPage() {
         // Not today - only check if booked
         const isBooked1 = existingSlots.some(slot => {
           const slotTimeLocal = dayjs.utc(slot.startTime).local()
-          return slotTimeLocal.hour() === hour && slotTimeLocal.minute() === 0
+          return slotTimeLocal.isSame(selectedDate, 'day') &&
+                 slotTimeLocal.hour() === hour &&
+                 slotTimeLocal.minute() === 0
         })
         if (!isBooked1) {
           slots.push({
@@ -229,7 +235,9 @@ export function BookingPage() {
         
         const isBooked2 = existingSlots.some(slot => {
           const slotTimeLocal = dayjs.utc(slot.startTime).local()
-          return slotTimeLocal.hour() === hour && slotTimeLocal.minute() === 30
+          return slotTimeLocal.isSame(selectedDate, 'day') &&
+                 slotTimeLocal.hour() === hour &&
+                 slotTimeLocal.minute() === 30
         })
         if (!isBooked2) {
           slots.push({
