@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Container,
   Title,
@@ -14,18 +14,28 @@ import {
   TextInput,
   Grid,
   ScrollArea,
+  Card,
+  Textarea,
 } from '@mantine/core'
 import { Calendar } from '@mantine/dates'
-import { 
-  IconChevronLeft, 
-  IconChevronRight, 
+import {
+  IconChevronLeft,
+  IconChevronRight,
   IconArrowLeft,
   IconArrowRight,
   IconAlertCircle,
-  IconCheck
+  IconCheck,
+  IconClock,
 } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
-import { apiClient } from '../api/client'
+import { apiClient } from '@/api/client'
+import { generateTimeSlots, isSlotAvailable } from '@/utils/timeSlots'
+import type {
+  BookingWithDetails,
+  EventType,
+  Owner,
+  TimeSlot,
+} from '@/types/api'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
@@ -35,128 +45,210 @@ dayjs.extend(utc)
 dayjs.extend(timezone)
 dayjs.locale('ru')
 
-interface TimeSlot {
-  id: string
-  startTime: string
-  endTime: string
-  isBooked: boolean
-}
+type BookingStep = 'select-event' | 'select-datetime' | 'confirm' | 'success'
 
 export function BookingPage() {
   const navigate = useNavigate()
+
+  // Data states
+  const [owner, setOwner] = useState<Owner | null>(null)
+  const [eventTypes, setEventTypes] = useState<EventType[]>([])
+  const [selectedEventType, setSelectedEventType] = useState<EventType | null>(
+    null
+  )
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [selectedSlot, setSelectedSlot] = useState<{ time: string; label: string } | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [existingSlots, setExistingSlots] = useState<TimeSlot[]>([])
+  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([])
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
+  const [existingBookings, setExistingBookings] = useState<
+    BookingWithDetails[]
+  >([])
+
+  // UI states
+  const [step, setStep] = useState<BookingStep>('select-event')
+  const [isLoading, setIsLoading] = useState(true)
   const [slotsLoading, setSlotsLoading] = useState(false)
-  
-  // Form state
-  const [showForm, setShowForm] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+
+  // Form states
   const [bookerName, setBookerName] = useState('')
   const [bookerEmail, setBookerEmail] = useState('')
-  const [formErrors, setFormErrors] = useState<{name?: string; email?: string}>({})
+  const [bookerPhone, setBookerPhone] = useState('')
+  const [notes, setNotes] = useState('')
+  const [formErrors, setFormErrors] = useState<{
+    name?: string
+    email?: string
+  }>({})
 
-  const handleDateSelect = async (date: Date) => {
-    setSelectedDate(date)
-    setSelectedSlot(null)
-    setShowForm(false)
-    setSuccess(false)
-    setError(null)
-    
-    // Load existing time slots for selected date
+  // Load owner and event types on mount
+  useEffect(() => {
+    loadInitialData()
+  }, [])
+
+  const loadInitialData = async () => {
+    try {
+      setIsLoading(true)
+      const ownerData = await apiClient.getOwner()
+      setOwner(ownerData)
+
+      const types = await apiClient.getEventTypes(ownerData.id)
+      setEventTypes(types)
+    } catch (err) {
+      setError('Не удалось загрузить данные. Попробуйте позже.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Load bookings when date and event type selected
+  const loadBookingsForDate = async (date: Date, eventType: EventType) => {
+    if (!owner) return
+
     setSlotsLoading(true)
     try {
-      // Use ISO format with timezone to properly handle date ranges
       const dateFrom = dayjs(date).startOf('day').toISOString()
       const dateTo = dayjs(date).endOf('day').toISOString()
-      const slots = await apiClient.getTimeSlots('owner-1', dateFrom, dateTo) as TimeSlot[]
-      setExistingSlots(slots)
+
+      const bookings = await apiClient.getBookings(
+        owner.id,
+        'confirmed',
+        dateFrom,
+        dateTo
+      )
+      setExistingBookings(bookings)
+
+      // Generate slots locally
+      const slots = generateTimeSlots(eventType, owner, date, bookings)
+      setAvailableSlots(slots)
     } catch (err) {
-      console.error('Failed to load time slots:', err)
-      setExistingSlots([])
+      console.error('Failed to load bookings:', err)
+      setAvailableSlots([])
     } finally {
       setSlotsLoading(false)
     }
   }
 
-  const handleSlotSelect = (slot: { time: string; label: string }) => {
+  const handleEventTypeSelect = (eventType: EventType) => {
+    setSelectedEventType(eventType)
+    setStep('select-datetime')
+    setSelectedDate(null)
+    setSelectedSlot(null)
+    setAvailableSlots([])
+  }
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date)
+    setSelectedSlot(null)
+    if (selectedEventType && owner) {
+      loadBookingsForDate(date, selectedEventType)
+    }
+  }
+
+  const handleSlotSelect = (slot: TimeSlot) => {
     setSelectedSlot(slot)
-    setShowForm(false)
-    setSuccess(false)
   }
 
   const handleBack = () => {
-    if (showForm) {
-      setShowForm(false)
+    if (step === 'confirm') {
+      setStep('select-datetime')
+    } else if (step === 'select-datetime') {
+      setStep('select-event')
+      setSelectedEventType(null)
+      setSelectedDate(null)
+      setSelectedSlot(null)
     } else {
       navigate('/')
     }
   }
 
   const handleContinue = () => {
-    if (selectedSlot && selectedDate) {
-      setShowForm(true)
+    if (step === 'select-datetime' && selectedSlot) {
+      setStep('confirm')
     }
   }
 
   const validateForm = () => {
-    const errors: {name?: string; email?: string} = {}
-    
+    const errors: { name?: string; email?: string } = {}
+
     if (!bookerName.trim()) {
       errors.name = 'Введите имя'
     }
-    
+
     if (!bookerEmail.trim()) {
       errors.email = 'Введите email'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bookerEmail)) {
       errors.email = 'Некорректный email'
     }
-    
+
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
 
   const handleSubmit = async () => {
-    if (!validateForm() || !selectedDate || !selectedSlot) {
+    if (
+      !validateForm() ||
+      !selectedSlot ||
+      !selectedEventType ||
+      !owner ||
+      !selectedDate
+    ) {
       return
     }
 
-    setLoading(true)
+    // Re-verify slot is still available (pre-booking check)
+    const isStillAvailable = isSlotAvailable(
+      selectedSlot.startTime,
+      selectedEventType.duration,
+      existingBookings
+    )
+
+    if (!isStillAvailable) {
+      setError('Это время уже занято. Пожалуйста, выберите другой слот.')
+      // Reload slots
+      if (selectedEventType && selectedDate) {
+        loadBookingsForDate(selectedDate, selectedEventType)
+      }
+      setStep('select-datetime')
+      setSelectedSlot(null)
+      return
+    }
+
+    setIsLoading(true)
     setError(null)
-    
+
     try {
-      // Parse the selected time slot
-      const [startHour, startMin] = selectedSlot.time.split(':').map(Number)
-      
-      // Create date with selected time
-      const slotDate = new Date(selectedDate)
-      slotDate.setHours(startHour, startMin, 0, 0)
-      
-      // Create time slot first
-      const timeSlotData = await apiClient.createTimeSlot({
-        ownerId: 'owner-1',
-        startTime: slotDate.toISOString()
-      }) as TimeSlot
-      
-      // Then create booking
       await apiClient.createBooking({
-        timeSlotId: timeSlotData.id,
+        eventTypeId: selectedEventType.id,
+        ownerId: owner.id,
+        startTime: selectedSlot.startTime,
         bookerName: bookerName.trim(),
         bookerEmail: bookerEmail.trim(),
+        bookerPhone: bookerPhone.trim() || undefined,
+        notes: notes.trim() || undefined,
       })
-      
-      setSuccess(true)
-      setShowForm(false)
-      setSelectedSlot(null)
+
+      setStep('success')
       setBookerName('')
       setBookerEmail('')
+      setBookerPhone('')
+      setNotes('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не удалось создать запись')
+      const errorMessage =
+        err instanceof Error ? err.message : 'Не удалось создать запись'
+      // Check for conflict error
+      if (errorMessage.includes('409') || errorMessage.includes('conflict')) {
+        setError('Это время уже занято. Пожалуйста, выберите другой слот.')
+        // Reload slots
+        if (selectedEventType && selectedDate) {
+          loadBookingsForDate(selectedDate, selectedEventType)
+        }
+        setStep('select-datetime')
+        setSelectedSlot(null)
+      } else {
+        setError(errorMessage)
+      }
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
@@ -168,145 +260,87 @@ export function BookingPage() {
     setCurrentMonth(dayjs(currentMonth).add(1, 'month').toDate())
   }
 
-  // Generate time slots for display (09:00 - 18:00, every 30 min)
-  // Filter out past slots and already booked slots
-  const generateTimeSlots = () => {
-    const slots: { time: string; label: string }[] = []
-    const now = dayjs()
-    const isToday = selectedDate && dayjs(selectedDate).isSame(now, 'day')
-    
-    for (let hour = 9; hour < 18; hour++) {
-      const time1 = `${hour.toString().padStart(2, '0')}:00`
-      const time2 = `${hour.toString().padStart(2, '0')}:30`
-      
-      // Check if slot is in the past (for today)
-      if (isToday) {
-        const slotTime1 = dayjs(selectedDate).hour(hour).minute(0)
-        const slotTime2 = dayjs(selectedDate).hour(hour).minute(30)
-        if (slotTime1.isBefore(now)) {
-          // Skip this slot, it's in the past
-        } else {
-          // Check if already booked - compare with UTC time converted to local
-          const isBooked1 = existingSlots.some(slot => {
-            const slotTimeLocal = dayjs.utc(slot.startTime).local()
-            return slotTimeLocal.isSame(selectedDate, 'day') &&
-                   slotTimeLocal.hour() === hour &&
-                   slotTimeLocal.minute() === 0
-          })
-          if (!isBooked1) {
-            slots.push({
-              time: time1,
-              label: `${hour.toString().padStart(2, '0')}:00 - ${hour.toString().padStart(2, '0')}:30`
-            })
-          }
-        }
-        
-        if (slotTime2.isBefore(now)) {
-          // Skip this slot, it's in the past
-        } else {
-          // Check if already booked - compare with UTC time converted to local
-          const isBooked2 = existingSlots.some(slot => {
-            const slotTimeLocal = dayjs.utc(slot.startTime).local()
-            return slotTimeLocal.isSame(selectedDate, 'day') &&
-                   slotTimeLocal.hour() === hour &&
-                   slotTimeLocal.minute() === 30
-          })
-          if (!isBooked2) {
-            slots.push({
-              time: time2,
-              label: `${hour.toString().padStart(2, '0')}:30 - ${(hour + 1).toString().padStart(2, '0')}:00`
-            })
-          }
-        }
-      } else {
-        // Not today - only check if booked
-        const isBooked1 = existingSlots.some(slot => {
-          const slotTimeLocal = dayjs.utc(slot.startTime).local()
-          return slotTimeLocal.isSame(selectedDate, 'day') &&
-                 slotTimeLocal.hour() === hour &&
-                 slotTimeLocal.minute() === 0
-        })
-        if (!isBooked1) {
-          slots.push({
-            time: time1,
-            label: `${hour.toString().padStart(2, '0')}:00 - ${hour.toString().padStart(2, '0')}:30`
-          })
-        }
-        
-        const isBooked2 = existingSlots.some(slot => {
-          const slotTimeLocal = dayjs.utc(slot.startTime).local()
-          return slotTimeLocal.isSame(selectedDate, 'day') &&
-                 slotTimeLocal.hour() === hour &&
-                 slotTimeLocal.minute() === 30
-        })
-        if (!isBooked2) {
-          slots.push({
-            time: time2,
-            label: `${hour.toString().padStart(2, '0')}:30 - ${(hour + 1).toString().padStart(2, '0')}:00`
-          })
-        }
-      }
+  const formatDuration = (minutes: number): string => {
+    if (minutes < 60) {
+      return `${minutes} мин`
     }
-    return slots
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    if (mins === 0) {
+      return `${hours} ч`
+    }
+    return `${hours} ч ${mins} мин`
   }
 
-  const timeSlots = generateTimeSlots()
-
-  // Format date for display: "воскресенье, 26 апреля"
   const formatSelectedDate = (date: Date | null) => {
     if (!date) return 'Дата не выбрана'
     return dayjs(date).format('dddd, D MMMM')
   }
 
-  // Format time for display: "09:00 - 09:30"
-  const formatSelectedTime = (slot: { time: string; label: string } | null) => {
+  const formatSelectedTime = (slot: TimeSlot | null) => {
     if (!slot) return 'Время не выбрано'
-    return slot.label
+    return `${dayjs(slot.startTime).format('HH:mm')} - ${dayjs(
+      slot.endTime
+    ).format('HH:mm')}`
   }
 
-  if (success) {
+  // ==================== Success View ====================
+  if (step === 'success') {
     return (
       <Container size="xl" py={40}>
-        <Paper 
-          p="xl" 
-          radius="md" 
-          withBorder 
-          style={{ borderColor: '#e5e7eb', background: '#fff', maxWidth: 500, margin: '0 auto', textAlign: 'center' }}
+        <Paper
+          p="xl"
+          radius="md"
+          withBorder
+          style={{
+            borderColor: '#e5e7eb',
+            background: '#fff',
+            maxWidth: 500,
+            margin: '0 auto',
+            textAlign: 'center',
+          }}
         >
           <Box mb="lg">
-            <IconCheck size={64} color="#22c55e" style={{ margin: '0 auto' }} />
+            <IconCheck
+              size={64}
+              color="#22c55e"
+              style={{ margin: '0 auto' }}
+            />
           </Box>
           <Title order={2} mb="md" style={{ fontWeight: 700 }}>
             Запись подтверждена!
           </Title>
           <Text c="dimmed" mb="xl">
-            Мы отправили подтверждение на ваш email. Ждём вас в назначенное время.
+            Мы отправили подтверждение на ваш email. Ждём вас в назначенное
+            время.
           </Text>
           <Group justify="center">
-            <Button 
+            <Button
               color="orange"
               onClick={() => navigate('/events')}
               radius="md"
               styles={{
                 root: {
                   backgroundColor: '#f97316',
-                }
+                },
               }}
             >
               Мои записи
             </Button>
-            <Button 
+            <Button
               variant="outline"
               onClick={() => {
-                setSuccess(false)
+                setStep('select-event')
+                setSelectedEventType(null)
                 setSelectedDate(null)
+                setSelectedSlot(null)
               }}
               radius="md"
               styles={{
                 root: {
                   borderColor: '#e5e7eb',
                   color: '#374151',
-                }
+                },
               }}
             >
               Новая запись
@@ -317,113 +351,496 @@ export function BookingPage() {
     )
   }
 
-  // Confirmation form view - 2 column layout
-  if (showForm) {
+  // ==================== Loading State ====================
+  if (isLoading && step === 'select-event') {
     return (
       <Container size="xl" py={40}>
-        <Title order={2} mb="xl" style={{ fontWeight: 700 }}>Запись на звонок</Title>
-        
+        <Box style={{ textAlign: 'center', paddingTop: 100 }}>
+          <Loader size="lg" />
+          <Text c="dimmed" mt="md">
+            Загрузка...
+          </Text>
+        </Box>
+      </Container>
+    )
+  }
+
+  // ==================== Select Event Type View ====================
+  if (step === 'select-event') {
+    return (
+      <Container size="xl" py={40}>
+        <Title order={2} mb="xl" style={{ fontWeight: 700 }}>
+          Выберите тип встречи
+        </Title>
+
+        {eventTypes.length === 0 ? (
+          <Paper
+            p="xl"
+            radius="md"
+            withBorder
+            style={{ textAlign: 'center' }}
+          >
+            <IconClock size={48} color="#adb5bd" style={{ margin: '0 auto' }} />
+            <Text c="dimmed" mt="md">
+              Пока нет доступных типов встреч.
+              <br />
+              Пожалуйста, обратитесь к администратору.
+            </Text>
+            <Button onClick={() => navigate('/')} mt="lg" variant="outline">
+              На главную
+            </Button>
+          </Paper>
+        ) : (
+          <Grid gutter="lg">
+            {eventTypes.map(eventType => (
+              <Grid.Col key={eventType.id} span={{ base: 12, sm: 6, md: 4 }}>
+                <Card
+                  withBorder
+                  padding="lg"
+                  radius="md"
+                  style={{
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                  }}
+                  onClick={() => handleEventTypeSelect(eventType)}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-4px)'
+                    e.currentTarget.style.boxShadow =
+                      '0 4px 12px rgba(0,0,0,0.1)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                >
+                  <Stack gap="sm">
+                    <Text fw={600} size="lg">
+                      {eventType.title}
+                    </Text>
+                    {eventType.description && (
+                      <Text size="sm" c="dimmed" lineClamp={2}>
+                        {eventType.description}
+                      </Text>
+                    )}
+                    <Group gap="xs" mt="xs">
+                      <IconClock size={16} color="#f97316" />
+                      <Text size="sm" fw={500}>
+                        {formatDuration(eventType.duration)}
+                      </Text>
+                    </Group>
+                  </Stack>
+                </Card>
+              </Grid.Col>
+            ))}
+          </Grid>
+        )}
+
+        <Group justify="center" mt="xl">
+          <Button
+            variant="outline"
+            leftSection={<IconArrowLeft size={16} />}
+            onClick={() => navigate('/')}
+            radius="md"
+          >
+            Назад
+          </Button>
+        </Group>
+      </Container>
+    )
+  }
+
+  // ==================== Select Date & Time View ====================
+  if (step === 'select-datetime') {
+    return (
+      <Container size="xl" py={40}>
+        <Title order={2} mb="xl" style={{ fontWeight: 700 }}>
+          Запись: {selectedEventType?.title}
+        </Title>
+
         <Grid gutter="xl">
           {/* Left Panel - Information */}
-          <Grid.Col span={5}>
-            <Paper 
-              p="lg" 
-              radius="md" 
-              withBorder 
-              style={{ borderColor: '#e5e7eb', background: '#fff', height: '100%' }}
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Paper
+              p="lg"
+              radius="md"
+              withBorder
+              style={{ borderColor: '#e5e7eb', background: '#fff' }}
             >
-              <Text fw={600} size="lg" mb="lg">Информация</Text>
-              
+              <Text fw={600} size="lg" mb="lg">
+                Информация
+              </Text>
+
               <Stack gap="md">
-                <Box className="info-block">
-                  <Text size="sm" c="dimmed" mb={4}>Выбранная дата</Text>
-                  <Text fw={500} size="md">{formatSelectedDate(selectedDate)}</Text>
+                <Box>
+                  <Text size="sm" c="dimmed" mb={4}>
+                    Тип встречи
+                  </Text>
+                  <Text fw={500} size="md">
+                    {selectedEventType?.title}
+                  </Text>
                 </Box>
-                
-                <Box className="info-block">
-                  <Text size="sm" c="dimmed" mb={4}>Выбранное время</Text>
-                  <Text fw={500} size="md">{formatSelectedTime(selectedSlot)}</Text>
+
+                <Box>
+                  <Text size="sm" c="dimmed" mb={4}>
+                    Длительность
+                  </Text>
+                  <Text fw={500} size="md">
+                    {selectedEventType &&
+                      formatDuration(selectedEventType.duration)}
+                  </Text>
                 </Box>
-                
-                <Box className="info-block">
-                  <Text size="sm" c="dimmed" mb={4}>Свободно</Text>
-                  <Text fw={500} size="md">{selectedDate ? timeSlots.length : 0}</Text>
+
+                <Box>
+                  <Text size="sm" c="dimmed" mb={4}>
+                    Выбранная дата
+                  </Text>
+                  <Text fw={500} size="md">
+                    {formatSelectedDate(selectedDate)}
+                  </Text>
                 </Box>
-                
-                <Box className="info-block">
-                  <Text size="sm" c="dimmed" mb={4}>Длительности в дне</Text>
-                  <Text fw={500} size="md">30 мин</Text>
+
+                <Box>
+                  <Text size="sm" c="dimmed" mb={4}>
+                    Выбранное время
+                  </Text>
+                  <Text fw={500} size="md">
+                    {formatSelectedTime(selectedSlot)}
+                  </Text>
                 </Box>
+
+                {selectedDate && (
+                  <Box>
+                    <Text size="sm" c="dimmed" mb={4}>
+                      Доступно слотов
+                    </Text>
+                    <Text fw={500} size="md">
+                      {availableSlots.length}
+                    </Text>
+                  </Box>
+                )}
               </Stack>
+
+              <Button
+                variant="outline"
+                fullWidth
+                mt="xl"
+                leftSection={<IconArrowLeft size={16} />}
+                onClick={handleBack}
+                radius="md"
+              >
+                Изменить тип встречи
+              </Button>
             </Paper>
           </Grid.Col>
 
-          {/* Right Panel - Confirmation Form */}
-          <Grid.Col span={7}>
-            <Paper 
-              p="lg" 
-              radius="md" 
-              withBorder 
-              style={{ borderColor: '#e5e7eb', background: '#fff', height: '100%' }}
+          {/* Center - Calendar */}
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Paper
+              p="lg"
+              radius="md"
+              withBorder
+              style={{ borderColor: '#e5e7eb', background: '#fff' }}
             >
-              <Group justify="space-between" mb="lg" align="center">
-                <Text fw={600} size="lg">Подтверждение записи</Text>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowForm(false)}
-                  radius="md"
-                  size="sm"
-                  styles={{
-                    root: {
-                      borderColor: '#e5e7eb',
-                      color: '#374151',
-                    }
-                  }}
-                >
-                  Изменить
-                </Button>
+              <Group justify="space-between" mb="md" align="center">
+                <Text fw={600} size="lg">
+                  Выберите дату
+                </Text>
+                <Group gap="xs" align="center">
+                  <ActionIcon
+                    variant="default"
+                    size="sm"
+                    radius="md"
+                    onClick={handlePrevMonth}
+                  >
+                    <IconChevronLeft size={16} />
+                  </ActionIcon>
+                  <ActionIcon
+                    variant="default"
+                    size="sm"
+                    radius="md"
+                    onClick={handleNextMonth}
+                  >
+                    <IconChevronRight size={16} />
+                  </ActionIcon>
+                </Group>
               </Group>
-              
+
+              <Calendar
+                locale="ru"
+                date={currentMonth}
+                onDateChange={setCurrentMonth}
+                minDate={new Date()}
+                className="custom-calendar"
+                getDayProps={date => ({
+                  selected: selectedDate
+                    ? dayjs(date).isSame(selectedDate, 'date')
+                    : false,
+                  onClick: () => handleDateSelect(new Date(date)),
+                })}
+              />
+            </Paper>
+          </Grid.Col>
+
+          {/* Right - Time Slots */}
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Paper
+              p="lg"
+              radius="md"
+              withBorder
+              style={{ borderColor: '#e5e7eb', background: '#fff' }}
+            >
+              <Text fw={600} size="lg" mb="md">
+                Доступное время
+              </Text>
+
+              {!selectedDate && (
+                <Text c="dimmed">Сначала выберите дату в календаре.</Text>
+              )}
+
+              {selectedDate && slotsLoading && (
+                <Box py="xl" style={{ textAlign: 'center' }}>
+                  <Loader size="sm" />
+                  <Text size="sm" c="dimmed" mt="xs">
+                    Загрузка слотов...
+                  </Text>
+                </Box>
+              )}
+
+              {selectedDate && !slotsLoading && (
+                <>
+                  {availableSlots.length === 0 ? (
+                    <Box py="xl" style={{ textAlign: 'center' }}>
+                      <Text c="dimmed">
+                        Нет доступных слотов на эту дату
+                        <br />
+                        <Text size="sm" mt="xs">
+                          Все время занято или вне рабочих часов
+                        </Text>
+                      </Text>
+                    </Box>
+                  ) : (
+                    <ScrollArea h={320} mb="md">
+                      <Stack gap="xs">
+                        {availableSlots.map(slot => {
+                          const isSelected =
+                            selectedSlot?.id === slot.id
+
+                          return (
+                            <Button
+                              key={slot.id}
+                              variant={isSelected ? 'filled' : 'default'}
+                              color={isSelected ? 'orange' : undefined}
+                              fullWidth
+                              justify="space-between"
+                              onClick={() => handleSlotSelect(slot)}
+                              styles={{
+                                root: {
+                                  border: isSelected
+                                    ? 'none'
+                                    : '1px solid #e5e7eb',
+                                  backgroundColor: isSelected
+                                    ? '#f97316'
+                                    : '#fff',
+                                  color: isSelected ? '#fff' : '#000',
+                                  height: '46px',
+                                  borderRadius: '8px',
+                                },
+                              }}
+                            >
+                              <span>
+                                {dayjs(slot.startTime).format('HH:mm')} -{' '}
+                                {dayjs(slot.endTime).format('HH:mm')}
+                              </span>
+                              <span
+                                style={{
+                                  color: isSelected
+                                    ? 'rgba(255,255,255,0.8)'
+                                    : '#22c55e',
+                                  fontSize: '14px',
+                                }}
+                              >
+                                Свободно
+                              </span>
+                            </Button>
+                          )
+                        })}
+                      </Stack>
+                    </ScrollArea>
+                  )}
+
+                  <Group justify="space-between" mt="auto">
+                    <Button
+                      variant="outline"
+                      leftSection={<IconArrowLeft size={16} />}
+                      onClick={handleBack}
+                      radius="md"
+                    >
+                      Назад
+                    </Button>
+                    <Button
+                      color="orange"
+                      rightSection={<IconArrowRight size={16} />}
+                      onClick={handleContinue}
+                      disabled={!selectedSlot}
+                      radius="md"
+                      styles={{
+                        root: {
+                          backgroundColor: '#f97316',
+                        },
+                      }}
+                    >
+                      Продолжить
+                    </Button>
+                  </Group>
+                </>
+              )}
+            </Paper>
+          </Grid.Col>
+        </Grid>
+      </Container>
+    )
+  }
+
+  // ==================== Confirmation Form View ====================
+  if (step === 'confirm') {
+    return (
+      <Container size="xl" py={40}>
+        <Title order={2} mb="xl" style={{ fontWeight: 700 }}>
+          Подтверждение записи
+        </Title>
+
+        <Grid gutter="xl">
+          {/* Left Panel - Information */}
+          <Grid.Col span={{ base: 12, md: 5 }}>
+            <Paper
+              p="lg"
+              radius="md"
+              withBorder
+              style={{ borderColor: '#e5e7eb', background: '#fff' }}
+            >
+              <Text fw={600} size="lg" mb="lg">
+                Детали встречи
+              </Text>
+
+              <Stack gap="md">
+                <Box>
+                  <Text size="sm" c="dimmed" mb={4}>
+                    Тип встречи
+                  </Text>
+                  <Text fw={500} size="md">
+                    {selectedEventType?.title}
+                  </Text>
+                </Box>
+
+                <Box>
+                  <Text size="sm" c="dimmed" mb={4}>
+                    Длительность
+                  </Text>
+                  <Text fw={500} size="md">
+                    {selectedEventType &&
+                      formatDuration(selectedEventType.duration)}
+                  </Text>
+                </Box>
+
+                <Box>
+                  <Text size="sm" c="dimmed" mb={4}>
+                    Дата и время
+                  </Text>
+                  <Text fw={500} size="md">
+                    {formatSelectedDate(selectedDate)},{' '}
+                    {formatSelectedTime(selectedSlot)}
+                  </Text>
+                </Box>
+              </Stack>
+
+              <Button
+                variant="outline"
+                fullWidth
+                mt="xl"
+                leftSection={<IconArrowLeft size={16} />}
+                onClick={handleBack}
+                radius="md"
+              >
+                Изменить дату и время
+              </Button>
+            </Paper>
+          </Grid.Col>
+
+          {/* Right Panel - Form */}
+          <Grid.Col span={{ base: 12, md: 7 }}>
+            <Paper
+              p="lg"
+              radius="md"
+              withBorder
+              style={{ borderColor: '#e5e7eb', background: '#fff' }}
+            >
+              <Text fw={600} size="lg" mb="lg">
+                Ваши данные
+              </Text>
+
               <Stack gap="md">
                 <TextInput
-                  placeholder="Имя"
+                  label="Имя"
+                  placeholder="Введите ваше имя"
                   value={bookerName}
-                  onChange={(e) => setBookerName(e.target.value)}
+                  onChange={e => setBookerName(e.target.value)}
                   error={formErrors.name}
                   radius="md"
-                  size="md"
+                  required
                 />
-                
+
                 <TextInput
-                  placeholder="Email"
+                  label="Email"
+                  placeholder="your@email.com"
                   value={bookerEmail}
-                  onChange={(e) => setBookerEmail(e.target.value)}
+                  onChange={e => setBookerEmail(e.target.value)}
                   error={formErrors.email}
                   radius="md"
-                  size="md"
+                  required
                 />
-                
+
+                <TextInput
+                  label="Телефон"
+                  placeholder="+7 (999) 123-45-67"
+                  value={bookerPhone}
+                  onChange={e => setBookerPhone(e.target.value)}
+                  radius="md"
+                />
+
+                <Textarea
+                  label="Заметки"
+                  placeholder="Дополнительная информация (необязательно)"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  minRows={3}
+                  radius="md"
+                />
+
                 {error && (
                   <Alert color="red" icon={<IconAlertCircle size={16} />}>
                     {error}
                   </Alert>
                 )}
-                
+
                 <Button
                   color="orange"
                   fullWidth
                   onClick={handleSubmit}
-                  disabled={loading}
+                  disabled={isLoading}
                   radius="md"
                   size="md"
                   mt="sm"
                   styles={{
                     root: {
                       backgroundColor: '#f97316',
-                    }
+                    },
                   }}
                 >
-                  {loading ? <Loader size="sm" color="white" /> : 'Подтвердить запись'}
+                  {isLoading ? (
+                    <Loader size="sm" color="white" />
+                  ) : (
+                    'Подтвердить запись'
+                  )}
                 </Button>
               </Stack>
             </Paper>
@@ -433,194 +850,5 @@ export function BookingPage() {
     )
   }
 
-  // Default view - 3 column layout
-  return (
-    <Container size="xl" py={40}>
-      <Title order={2} mb="xl" style={{ fontWeight: 700 }}>Запись на звонок</Title>
-      
-      <div className="booking-grid">
-        {/* Left Panel - Information */}
-        <Paper 
-          p="lg" 
-          radius="md" 
-          withBorder 
-          style={{ borderColor: '#e5e7eb', background: '#fff' }}
-          className="booking-panel"
-        >
-          <Text fw={600} size="lg" mb="lg">Информация</Text>
-          
-          <Stack gap="md">
-            <Box className="info-block">
-              <Text size="sm" c="dimmed" mb={4}>Выбранная дата</Text>
-              <Text fw={500} size="md">{formatSelectedDate(selectedDate)}</Text>
-            </Box>
-            
-            <Box className="info-block">
-              <Text size="sm" c="dimmed" mb={4}>Выбранное время</Text>
-              <Text fw={500} size="md">{formatSelectedTime(selectedSlot)}</Text>
-            </Box>
-            
-            <Box className="info-block">
-              <Text size="sm" c="dimmed" mb={4}>Свободно</Text>
-              <Text fw={500} size="md">{selectedDate ? timeSlots.length : 0} слотов</Text>
-            </Box>
-            
-            <Box className="info-block">
-              <Text size="sm" c="dimmed" mb={4}>Длительность</Text>
-              <Text fw={500} size="md">30 мин</Text>
-            </Box>
-          </Stack>
-        </Paper>
-
-        {/* Center Panel - Calendar */}
-        <Paper 
-          p="lg" 
-          radius="md" 
-          withBorder 
-          style={{ borderColor: '#e5e7eb', background: '#fff' }}
-          className="booking-panel"
-        >
-          <Group justify="space-between" mb="md" align="center">
-            <Text fw={600} size="lg">Календарь</Text>
-            <Group gap="xs" align="center">
-              <ActionIcon 
-                variant="default" 
-                size="sm" 
-                radius="md"
-                onClick={handlePrevMonth}
-                className="calendar-nav-btn"
-              >
-                <IconChevronLeft size={16} />
-              </ActionIcon>
-              <ActionIcon 
-                variant="default" 
-                size="sm" 
-                radius="md"
-                onClick={handleNextMonth}
-                className="calendar-nav-btn"
-              >
-                <IconChevronRight size={16} />
-              </ActionIcon>
-            </Group>
-          </Group>
-          
-          <Calendar
-            locale="ru"
-            date={currentMonth}
-            onDateChange={setCurrentMonth}
-            minDate={new Date()}
-            className="custom-calendar"
-            getDayProps={(date) => ({
-              selected: selectedDate ? dayjs(date).isSame(selectedDate, 'date') : false,
-              onClick: () => handleDateSelect(new Date(date)),
-            })}
-          />
-        </Paper>
-
-        {/* Right Panel - Slot Status */}
-        <Paper 
-          p="lg" 
-          radius="md" 
-          withBorder 
-          style={{ borderColor: '#e5e7eb', background: '#fff' }}
-          className="booking-panel"
-        >
-          <Text fw={600} size="lg" mb="md">Статус слотов</Text>
-          
-          {!selectedDate && (
-            <Text c="dimmed">Выберите дату в календаре.</Text>
-          )}
-          
-          {selectedDate && slotsLoading && (
-            <Box py="xl" style={{ textAlign: 'center' }}>
-              <Loader size="sm" />
-              <Text size="sm" c="dimmed" mt="xs">Загрузка слотов...</Text>
-            </Box>
-          )}
-          
-          {selectedDate && !slotsLoading && (
-            <>
-              {timeSlots.length === 0 ? (
-                <Box py="xl" style={{ textAlign: 'center' }}>
-                  <Text c="dimmed">Нет доступных слотов на эту дату</Text>
-                </Box>
-              ) : (
-                <ScrollArea h={320} mb="xl">
-                  <Stack gap="xs">
-                    {timeSlots.map((slot) => {
-                      const isSelected = selectedSlot?.time === slot.time
-                      
-                      return (
-                        <Button
-                          key={slot.time}
-                          variant={isSelected ? 'filled' : 'default'}
-                          color={isSelected ? 'orange' : undefined}
-                          fullWidth
-                          justify="space-between"
-                          onClick={() => handleSlotSelect(slot)}
-                          styles={{
-                            root: {
-                              border: isSelected ? 'none' : '1px solid #e5e7eb',
-                              backgroundColor: isSelected ? '#f97316' : '#fff',
-                              color: isSelected ? '#fff' : '#000',
-                              height: '46px',
-                              borderRadius: '8px',
-                            },
-                            label: {
-                              width: '100%',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                            },
-                            inner: {
-                              width: '100%',
-                            }
-                          }}
-                        >
-                          <span>{slot.label}</span>
-                          <span style={{ color: isSelected ? 'rgba(255,255,255,0.8)' : '#22c55e', fontSize: '14px' }}>
-                            Свободно
-                          </span>
-                        </Button>
-                      )
-                    })}
-                  </Stack>
-                </ScrollArea>
-              )}
-              
-              <Group justify="space-between" mt="auto">
-                <Button 
-                  variant="outline" 
-                  leftSection={<IconArrowLeft size={16} />}
-                  onClick={handleBack}
-                  radius="md"
-                  styles={{
-                    root: {
-                      borderColor: '#e5e7eb',
-                      color: '#374151',
-                    }
-                  }}
-                >
-                  Назад
-                </Button>
-                <Button
-                  color="orange"
-                  rightSection={<IconArrowRight size={16} />}
-                  onClick={handleContinue}
-                  disabled={!selectedSlot}
-                  radius="md"
-                  styles={{
-                    root: {
-                      backgroundColor: '#f97316',
-                    }
-                  }}
-                >
-                  Продолжить
-                </Button>
-              </Group>
-            </>
-          )}
-        </Paper>
-      </div>
-    </Container>
-  )
+  return null
 }

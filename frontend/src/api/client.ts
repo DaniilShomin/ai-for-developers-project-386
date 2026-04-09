@@ -1,3 +1,16 @@
+import type {
+  Booking,
+  BookingCreate,
+  BookingStatus,
+  BookingWithDetails,
+  ErrorResponse,
+  EventType,
+  EventTypeCreate,
+  EventTypeUpdate,
+  Owner,
+  TimeSlot,
+} from '@/types/api'
+
 const API_BASE_URL = '/api/v1'
 
 class ApiClient {
@@ -15,10 +28,10 @@ class ApiClient {
     })
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({
+      const error = (await response.json().catch(() => ({
         code: 'UNKNOWN_ERROR',
         message: 'An unknown error occurred',
-      }))
+      }))) as ErrorResponse
       throw new Error(error.message || `HTTP error! status: ${response.status}`)
     }
 
@@ -29,68 +42,83 @@ class ApiClient {
     return response.json()
   }
 
-  // TimeSlots API
-  async getTimeSlots(ownerId: string, dateFrom?: string, dateTo?: string) {
-    const params = new URLSearchParams({ owner_id: ownerId })
-    if (dateFrom) params.append('date_from', dateFrom)
-    if (dateTo) params.append('date_to', dateTo)
-    return this.request(`/timeslots?${params.toString()}`, { method: 'GET' })
+  // ==================== Owner ====================
+
+  async getOwner(): Promise<Owner> {
+    return this.request('/owner', { method: 'GET' })
   }
 
-  async createTimeSlot(data: { ownerId: string; startTime: string }) {
-    const body = {
-      owner_id: data.ownerId,
-      start_time: data.startTime
-    }
-    return this.request('/timeslots', {
+  // ==================== Event Types ====================
+
+  async getEventTypes(ownerId: string): Promise<EventType[]> {
+    const params = new URLSearchParams({ ownerId })
+    return this.request(`/event-types?${params.toString()}`, { method: 'GET' })
+  }
+
+  async getEventType(id: string): Promise<EventType> {
+    return this.request(`/event-types/${id}`, { method: 'GET' })
+  }
+
+  async createEventType(data: EventTypeCreate): Promise<EventType> {
+    return this.request('/event-types', {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: JSON.stringify(data),
     })
   }
 
-  async deleteTimeSlot(id: string) {
-    return this.request(`/timeslots/${id}`, { method: 'DELETE' })
+  async updateEventType(
+    id: string,
+    data: EventTypeUpdate
+  ): Promise<EventType> {
+    return this.request(`/event-types/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
   }
 
-  // Bookings API
+  async deleteEventType(id: string): Promise<void> {
+    return this.request(`/event-types/${id}`, { method: 'DELETE' })
+  }
+
+  // ==================== Time Slots ====================
+
+  async getTimeSlots(
+    ownerId: string,
+    eventTypeId?: string,
+    dateFrom?: string,
+    dateTo?: string
+  ): Promise<TimeSlot[]> {
+    const params = new URLSearchParams({ ownerId })
+    if (eventTypeId) params.append('eventTypeId', eventTypeId)
+    if (dateFrom) params.append('dateFrom', dateFrom)
+    if (dateTo) params.append('dateTo', dateTo)
+    return this.request(`/timeslots?${params.toString()}`, { method: 'GET' })
+  }
+
+  // ==================== Bookings ====================
+
   async getBookings(
-    ownerId?: string,
-    bookerId?: string,
-    status?: 'confirmed' | 'cancelled'
-  ) {
-    const params = new URLSearchParams()
-    if (ownerId) params.append('owner_id', ownerId)
-    if (bookerId) params.append('booker_id', bookerId)
+    ownerId: string,
+    status?: BookingStatus,
+    dateFrom?: string,
+    dateTo?: string
+  ): Promise<BookingWithDetails[]> {
+    const params = new URLSearchParams({ ownerId })
     if (status) params.append('status', status)
+    if (dateFrom) params.append('dateFrom', dateFrom)
+    if (dateTo) params.append('dateTo', dateTo)
     const query = params.toString() ? `?${params.toString()}` : ''
     return this.request(`/bookings${query}`, { method: 'GET' })
   }
 
-  async getBooking(id: string) {
-    return this.request(`/bookings/${id}`, { method: 'GET' })
-  }
-
-  async createBooking(data: {
-    timeSlotId: string
-    bookerName: string
-    bookerEmail: string
-    bookerPhone?: string
-    notes?: string
-  }) {
-    const body = {
-      time_slot_id: data.timeSlotId,
-      booker_name: data.bookerName,
-      booker_email: data.bookerEmail,
-      booker_phone: data.bookerPhone,
-      notes: data.notes
-    }
+  async createBooking(data: BookingCreate): Promise<Booking> {
     return this.request('/bookings', {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: JSON.stringify(data),
     })
   }
 
-  async cancelBooking(id: string) {
+  async cancelBooking(id: string): Promise<Booking> {
     return this.request(`/bookings/${id}`, { method: 'DELETE' })
   }
 }
