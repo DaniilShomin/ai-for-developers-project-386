@@ -457,15 +457,28 @@ export function BookingPage() {
           Запись: {selectedEventType?.title}
         </Title>
 
-        <Grid gutter="xl">
+        <Box
+          h="min(460px, 90vh)"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '24px',
+          }}
+        >
           {/* Left Panel - Information */}
-          <Grid.Col span={{ base: 12, md: 4 }}>
-            <Paper
-              p="lg"
-              radius="md"
-              withBorder
-              style={{ borderColor: '#e5e7eb', background: '#fff' }}
-            >
+          <Paper
+            p="lg"
+            radius="md"
+            withBorder
+            h="100%"
+            style={{
+              borderColor: '#e5e7eb',
+              background: '#fff',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
               <Text fw={600} size="lg" mb="lg">
                 Информация
               </Text>
@@ -531,39 +544,24 @@ export function BookingPage() {
                 Изменить тип встречи
               </Button>
             </Paper>
-          </Grid.Col>
 
-          {/* Center - Calendar */}
-          <Grid.Col span={{ base: 12, md: 4 }}>
+            {/* Center - Calendar */}
             <Paper
               p="lg"
               radius="md"
               withBorder
-              style={{ borderColor: '#e5e7eb', background: '#fff' }}
+              h="100%"
+              style={{
+                borderColor: '#e5e7eb',
+                background: '#fff',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
             >
-              <Group justify="space-between" mb="md" align="center">
-                <Text fw={600} size="lg">
-                  Выберите дату
-                </Text>
-                <Group gap="xs" align="center">
-                  <ActionIcon
-                    variant="default"
-                    size="sm"
-                    radius="md"
-                    onClick={handlePrevMonth}
-                  >
-                    <IconChevronLeft size={16} />
-                  </ActionIcon>
-                  <ActionIcon
-                    variant="default"
-                    size="sm"
-                    radius="md"
-                    onClick={handleNextMonth}
-                  >
-                    <IconChevronRight size={16} />
-                  </ActionIcon>
-                </Group>
-              </Group>
+              <Text fw={600} size="lg" mb="md">
+                Выберите дату
+              </Text>
 
               <Calendar
                 locale="ru"
@@ -579,129 +577,139 @@ export function BookingPage() {
                 })}
               />
             </Paper>
-          </Grid.Col>
 
-          {/* Right - Time Slots */}
-          <Grid.Col span={{ base: 12, md: 4 }}>
+            {/* Right - Time Slots */}
             <Paper
               p="lg"
               radius="md"
               withBorder
-              style={{ borderColor: '#e5e7eb', background: '#fff' }}
+              h="100%"
+              style={{
+                borderColor: '#e5e7eb',
+                background: '#fff',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
             >
-              <Text fw={600} size="lg" mb="md">
-                Доступное время
-              </Text>
-
-              {!selectedDate && (
-                <Text c="dimmed">Сначала выберите дату в календаре.</Text>
-              )}
-
-              {selectedDate && slotsLoading && (
-                <Box py="xl" style={{ textAlign: 'center' }}>
-                  <Loader size="sm" />
-                  <Text size="sm" c="dimmed" mt="xs">
-                    Загрузка слотов...
+              <Stack h="100%" justify="space-between" gap="sm" style={{ flex: 1 }}>
+                  <Text fw={600} size="lg">
+                    Доступное время
                   </Text>
-                </Box>
-              )}
 
-              {selectedDate && !slotsLoading && (
-                <>
-                  {availableSlots.length === 0 ? (
-                    <Box py="xl" style={{ textAlign: 'center' }}>
+                  <Box style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+                    {!selectedDate && (
                       <Text c="dimmed">
-                        Нет доступных слотов на эту дату
-                        <br />
-                        <Text size="sm" mt="xs">
-                          Все время занято или вне рабочих часов
-                        </Text>
+                        Сначала выберите дату в календаре.
                       </Text>
-                    </Box>
-                  ) : (
-                    <ScrollArea h={320} mb="md">
-                      <Stack gap="xs">
-                        {availableSlots.map(slot => {
-                          const isSelected =
-                            selectedSlot?.id === slot.id
+                    )}
 
-                          return (
-                            <Button
-                              key={slot.id}
-                              variant={isSelected ? 'filled' : 'default'}
-                              color={isSelected ? 'orange' : undefined}
-                              fullWidth
-                              justify="space-between"
-                              onClick={() => handleSlotSelect(slot)}
-                              styles={{
-                                root: {
-                                  border: isSelected
-                                    ? 'none'
-                                    : '1px solid #e5e7eb',
-                                  backgroundColor: isSelected
-                                    ? '#f97316'
-                                    : '#fff',
-                                  color: isSelected ? '#fff' : '#000',
-                                  height: '46px',
-                                  borderRadius: '8px',
-                                },
-                                label: {
-                                  width: '100%',
-                                },
-                              }}
-                            >
-                              <Group justify="space-between" w="100%" wrap="nowrap">
-                                <span>
-                                  {dayjs(slot.startTime).format('HH:mm')} -{' '}
-                                  {dayjs(slot.endTime).format('HH:mm')}
-                                </span>
-                                <span
-                                  style={{
-                                    color: isSelected
-                                      ? 'rgba(255,255,255,0.8)'
-                                      : '#22c55e',
-                                    fontSize: '14px',
-                                  }}
-                                >
-                                  Свободно
-                                </span>
-                              </Group>
-                            </Button>
-                          )
-                        })}
-                      </Stack>
-                    </ScrollArea>
+                    {selectedDate && slotsLoading && (
+                      <Box py="xl" style={{ textAlign: 'center' }}>
+                        <Loader size="sm" />
+                        <Text size="sm" c="dimmed" mt="xs">
+                          Загрузка слотов...
+                        </Text>
+                      </Box>
+                    )}
+
+                    {selectedDate && !slotsLoading && availableSlots.length === 0 && (
+                      <Box py="xl" style={{ textAlign: 'center' }}>
+                        <Text c="dimmed">
+                          Нет доступных слотов на эту дату
+                          <br />
+                          <Text size="sm" mt="xs">
+                            Все время занято или вне рабочих часов
+                          </Text>
+                        </Text>
+                      </Box>
+                    )}
+
+                    {selectedDate && !slotsLoading && availableSlots.length > 0 && (
+                      <ScrollArea h="100%">
+                        <Stack gap="xs">
+                          {availableSlots.map(slot => {
+                            const isSelected =
+                              selectedSlot?.id === slot.id
+
+                            return (
+                              <Button
+                                key={slot.id}
+                                variant={isSelected ? 'filled' : 'default'}
+                                color={isSelected ? 'orange' : undefined}
+                                fullWidth
+                                justify="space-between"
+                                onClick={() => handleSlotSelect(slot)}
+                                styles={{
+                                  root: {
+                                    border: isSelected
+                                      ? 'none'
+                                      : '1px solid #e5e7eb',
+                                    backgroundColor: isSelected
+                                      ? '#f97316'
+                                      : '#fff',
+                                    color: isSelected ? '#fff' : '#000',
+                                    height: '46px',
+                                    borderRadius: '8px',
+                                  },
+                                  label: {
+                                    width: '100%',
+                                  },
+                                }}
+                              >
+                                <Group justify="space-between" w="100%" wrap="nowrap">
+                                  <span>
+                                    {dayjs(slot.startTime).format('HH:mm')} -{' '}
+                                    {dayjs(slot.endTime).format('HH:mm')}
+                                  </span>
+                                  <span
+                                    style={{
+                                      color: isSelected
+                                        ? 'rgba(255,255,255,0.8)'
+                                        : '#22c55e',
+                                      fontSize: '14px',
+                                    }}
+                                  >
+                                    Свободно
+                                  </span>
+                                </Group>
+                              </Button>
+                            )
+                          })}
+                        </Stack>
+                      </ScrollArea>
+                    )}
+                  </Box>
+
+                  {selectedDate && !slotsLoading && availableSlots.length > 0 && (
+                    <Group justify="space-between">
+                      <Button
+                        variant="outline"
+                        leftSection={<IconArrowLeft size={16} />}
+                        onClick={handleBack}
+                        radius="md"
+                      >
+                        Назад
+                      </Button>
+                      <Button
+                        color="orange"
+                        rightSection={<IconArrowRight size={16} />}
+                        onClick={handleContinue}
+                        disabled={!selectedSlot}
+                        radius="md"
+                        styles={{
+                          root: {
+                            backgroundColor: '#f97316',
+                          },
+                        }}
+                      >
+                        Продолжить
+                      </Button>
+                    </Group>
                   )}
-
-                  <Group justify="space-between" mt="auto">
-                    <Button
-                      variant="outline"
-                      leftSection={<IconArrowLeft size={16} />}
-                      onClick={handleBack}
-                      radius="md"
-                    >
-                      Назад
-                    </Button>
-                    <Button
-                      color="orange"
-                      rightSection={<IconArrowRight size={16} />}
-                      onClick={handleContinue}
-                      disabled={!selectedSlot}
-                      radius="md"
-                      styles={{
-                        root: {
-                          backgroundColor: '#f97316',
-                        },
-                      }}
-                    >
-                      Продолжить
-                    </Button>
-                  </Group>
-                </>
-              )}
-            </Paper>
-          </Grid.Col>
-        </Grid>
+                </Stack>
+              </Paper>
+            </Box>
       </Container>
     )
   }
