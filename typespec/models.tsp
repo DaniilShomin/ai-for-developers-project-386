@@ -2,7 +2,7 @@ import "@typespec/http";
 
 using TypeSpec.Http;
 
-@doc("Owner - Владелец календаря. Публикует доступное время для встреч.")
+@doc("Owner - Владелец календаря")
 model Owner {
   @doc("Уникальный идентификатор")
   id: string;
@@ -20,7 +20,7 @@ model Owner {
   createdAt: utcDateTime;
 }
 
-@doc("Booker - Пользователь, записывающийся на звонок")
+@doc("Booker - Пользователь, записывающийся на встречу")
 model Booker {
   @doc("Уникальный идентификатор")
   id: string;
@@ -38,34 +38,73 @@ model Booker {
   createdAt: utcDateTime;
 }
 
-@doc("TimeSlot - Временной слот на 30 минут")
-model TimeSlot {
+@doc("EventType - Тип события/бронирования. Владелец создаёт типы с названием, описанием и длительностью.")
+model EventType {
   @doc("Уникальный идентификатор")
   id: string;
 
+  @doc("Название типа события")
+  title: string;
+
+  @doc("Описание")
+  description?: string;
+
+  @doc("Длительность в минутах")
+  duration: int32;
+
   @doc("ID владельца")
   ownerId: string;
-
-  @doc("Время начала")
-  startTime: utcDateTime;
-
-  @doc("Время окончания (startTime + 30 мин)")
-  endTime: utcDateTime;
-
-  @doc("Забронирован ли слот")
-  isBooked: boolean;
 
   @doc("Дата создания")
   createdAt: utcDateTime;
 }
 
-@doc("Данные для создания временного слота")
-model TimeSlotCreate {
+@doc("Данные для создания типа события")
+model EventTypeCreate {
+  @doc("Название типа события")
+  title: string;
+
+  @doc("Описание")
+  description?: string;
+
+  @doc("Длительность в минутах")
+  duration: int32;
+
+  @doc("ID владельца")
+  ownerId: string;
+}
+
+@doc("Данные для обновления типа события")
+model EventTypeUpdate {
+  @doc("Название типа события")
+  title?: string;
+
+  @doc("Описание")
+  description?: string;
+
+  @doc("Длительность в минутах")
+  duration?: int32;
+}
+
+@doc("TimeSlot - Свободный временной слот для бронирования. Слоты генерируются автоматически на 14 дней вперёд.")
+model TimeSlot {
+  @doc("Уникальный идентификатор (генерируется на лету)")
+  id: string;
+
   @doc("ID владельца")
   ownerId: string;
 
   @doc("Время начала слота")
   startTime: utcDateTime;
+
+  @doc("Время окончания (startTime + duration типа события)")
+  endTime: utcDateTime;
+
+  @doc("ID типа события, если слот занят")
+  eventTypeId?: string;
+
+  @doc("Забронирован ли слот")
+  isBooked: boolean;
 }
 
 @doc("Статус бронирования")
@@ -79,11 +118,20 @@ model Booking {
   @doc("Уникальный идентификатор")
   id: string;
 
-  @doc("ID временного слота")
-  timeSlotId: string;
+  @doc("ID типа события")
+  eventTypeId: string;
+
+  @doc("ID владельца")
+  ownerId: string;
 
   @doc("ID записывающегося")
   bookerId: string;
+
+  @doc("Время начала")
+  startTime: utcDateTime;
+
+  @doc("Время окончания")
+  endTime: utcDateTime;
 
   @doc("Заметки к встрече")
   notes?: string;
@@ -97,8 +145,14 @@ model Booking {
 
 @doc("Данные для создания бронирования")
 model BookingCreate {
-  @doc("ID временного слота")
-  timeSlotId: string;
+  @doc("ID типа события")
+  eventTypeId: string;
+
+  @doc("ID владельца календаря")
+  ownerId: string;
+
+  @doc("Время начала бронирования (должно быть в окне 14 дней)")
+  startTime: utcDateTime;
 
   @doc("Имя записывающегося")
   bookerName: string;
@@ -118,11 +172,20 @@ model BookingWithDetails {
   @doc("Уникальный идентификатор")
   id: string;
 
-  @doc("ID временного слота")
-  timeSlotId: string;
+  @doc("ID типа события")
+  eventTypeId: string;
+
+  @doc("ID владельца")
+  ownerId: string;
 
   @doc("ID записывающегося")
   bookerId: string;
+
+  @doc("Время начала")
+  startTime: utcDateTime;
+
+  @doc("Время окончания")
+  endTime: utcDateTime;
 
   @doc("Заметки")
   notes?: string;
@@ -133,8 +196,8 @@ model BookingWithDetails {
   @doc("Дата создания")
   createdAt: utcDateTime;
 
-  @doc("Детали слота")
-  timeSlot: TimeSlot;
+  @doc("Данные типа события")
+  eventType: EventType;
 
   @doc("Данные записывающегося")
   booker: Booker;
