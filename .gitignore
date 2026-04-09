@@ -84,3 +84,6 @@ Desktop.ini
 # Project specific
 bookings.db
 backend/bookings.db
+
+# Playwright MCP artifacts
+.playwright-mcp/
