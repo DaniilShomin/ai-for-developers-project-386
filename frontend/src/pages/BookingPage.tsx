@@ -645,22 +645,27 @@ export function BookingPage() {
                                   height: '46px',
                                   borderRadius: '8px',
                                 },
+                                label: {
+                                  width: '100%',
+                                },
                               }}
                             >
-                              <span>
-                                {dayjs(slot.startTime).format('HH:mm')} -{' '}
-                                {dayjs(slot.endTime).format('HH:mm')}
-                              </span>
-                              <span
-                                style={{
-                                  color: isSelected
-                                    ? 'rgba(255,255,255,0.8)'
-                                    : '#22c55e',
-                                  fontSize: '14px',
-                                }}
-                              >
-                                Свободно
-                              </span>
+                              <Group justify="space-between" w="100%" wrap="nowrap">
+                                <span>
+                                  {dayjs(slot.startTime).format('HH:mm')} -{' '}
+                                  {dayjs(slot.endTime).format('HH:mm')}
+                                </span>
+                                <span
+                                  style={{
+                                    color: isSelected
+                                      ? 'rgba(255,255,255,0.8)'
+                                      : '#22c55e',
+                                    fontSize: '14px',
+                                  }}
+                                >
+                                  Свободно
+                                </span>
+                              </Group>
                             </Button>
                           )
                         })}

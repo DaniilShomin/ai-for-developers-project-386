@@ -45,9 +45,21 @@ export function generateTimeSlots(
   const duration = eventType.duration // in minutes
   const step = duration // Step equals event duration
 
+  // Get current time to filter out past slots for today
+  const now = dayjs()
+  const isToday = dayjs(date).isSame(now, 'day')
+
   // Generate slots from work start to work end
   let currentTime = workStart
   const endTime = workEnd.subtract(duration, 'minute')
+
+  // If today, skip past time slots
+  if (isToday && currentTime.isBefore(now)) {
+    // Find the first slot that is not in the past
+    while (currentTime.isBefore(now) && currentTime.isBefore(endTime)) {
+      currentTime = currentTime.add(step, 'minute')
+    }
+  }
 
   while (currentTime.isBefore(endTime) || currentTime.isSame(endTime)) {
     const slotStart = currentTime.toISOString()
