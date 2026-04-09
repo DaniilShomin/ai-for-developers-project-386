@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Owner
-from app.schemas import Owner as OwnerSchema, ErrorResponse
+from app.schemas import Owner as OwnerSchema, OwnerUpdate, ErrorResponse
 
 router = APIRouter(prefix="/owner", tags=["Owner"])
 
@@ -38,4 +38,34 @@ def get_owner(db: Session = Depends(get_db)):
     Получить данные владельца (default owner).
     """
     owner = get_or_create_default_owner(db)
+    return owner
+
+
+@router.put(
+    "",
+    response_model=OwnerSchema,
+    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+)
+def update_owner(
+    data: OwnerUpdate,
+    db: Session = Depends(get_db),
+):
+    """
+    Обновить данные владельца (default owner).
+    """
+    owner = get_or_create_default_owner(db)
+
+    if data.name is not None:
+        owner.name = data.name
+    if data.email is not None:
+        owner.email = data.email
+    if data.timezone is not None:
+        owner.timezone = data.timezone
+    if data.work_start is not None:
+        owner.work_start = data.work_start
+    if data.work_end is not None:
+        owner.work_end = data.work_end
+
+    db.commit()
+    db.refresh(owner)
     return owner

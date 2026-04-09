@@ -7,11 +7,12 @@ import {
   UnstyledButton,
   Divider,
 } from '@mantine/core'
-import { IconCalendarEvent, IconSettings } from '@tabler/icons-react'
+import { IconCalendarEvent, IconSettings, IconUser } from '@tabler/icons-react'
 import { LandingPage } from './pages/LandingPage'
 import { BookingPage } from './pages/BookingPage'
 import { EventsPage } from './pages/EventsPage'
 import { EventTypesPage } from './pages/EventTypesPage'
+import { OwnerPage } from './pages/OwnerPage'
 import { useNavigate } from 'react-router-dom'
 import './index.css'
 
@@ -80,6 +81,20 @@ function App() {
               <IconSettings size={16} />
               Типы событий
             </UnstyledButton>
+
+            <UnstyledButton
+              onClick={() => navigate('/owner')}
+              style={{
+                color: '#9ca3af',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <IconUser size={16} />
+              Настройки
+            </UnstyledButton>
           </Group>
         </Group>
       </AppShell.Header>
@@ -96,6 +111,7 @@ function App() {
           <Route path="/booking" element={<BookingPage />} />
           <Route path="/events" element={<EventsPage />} />
           <Route path="/event-types" element={<EventTypesPage />} />
+          <Route path="/owner" element={<OwnerPage />} />
         </Routes>
       </AppShell.Main>
     </AppShell>

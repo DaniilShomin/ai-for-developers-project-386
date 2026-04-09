@@ -52,6 +52,16 @@ class Owner(BaseModel):
     created_at: UtcDatetime
 
 
+class OwnerUpdate(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    name: str | None = None
+    email: str | None = None
+    timezone: str | None = None
+    work_start: str | None = None
+    work_end: str | None = None
+
+
 # ============== EventType Schemas ==============
 class EventType(BaseModel):
     model_config = ConfigDict(

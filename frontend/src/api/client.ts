@@ -8,6 +8,7 @@ import type {
   EventTypeCreate,
   EventTypeUpdate,
   Owner,
+  OwnerUpdate,
   TimeSlot,
 } from '@/types/api'
 
@@ -46,6 +47,13 @@ class ApiClient {
 
   async getOwner(): Promise<Owner> {
     return this.request('/owner', { method: 'GET' })
+  }
+
+  async updateOwner(data: OwnerUpdate): Promise<Owner> {
+    return this.request('/owner', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
   }
 
   // ==================== Event Types ====================

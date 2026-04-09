@@ -19,6 +19,14 @@ export interface Owner {
   createdAt: string
 }
 
+export interface OwnerUpdate {
+  name?: string
+  email?: string
+  timezone?: string
+  workStart?: string
+  workEnd?: string
+}
+
 // ==================== Event Types ====================
 
 export interface EventType {
