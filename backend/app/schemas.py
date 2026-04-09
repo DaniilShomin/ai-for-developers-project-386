@@ -37,6 +37,52 @@ class ErrorResponse(BaseModel):
     message: str
 
 
+# ============== Owner Schemas ==============
+class Owner(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
+
+    id: str
+    name: str
+    email: str
+    timezone: str
+    work_start: str
+    work_end: str
+    created_at: UtcDatetime
+
+
+# ============== EventType Schemas ==============
+class EventType(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
+
+    id: str
+    title: str
+    description: str | None = None
+    duration: int
+    owner_id: str
+    created_at: UtcDatetime
+
+
+class EventTypeCreate(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    title: str
+    description: str | None = None
+    duration: int
+    owner_id: str
+
+
+class EventTypeUpdate(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    title: str | None = None
+    description: str | None = None
+    duration: int | None = None
+
+
 # ============== Booker Schemas ==============
 class Booker(BaseModel):
     model_config = ConfigDict(
@@ -50,25 +96,53 @@ class Booker(BaseModel):
     created_at: UtcDatetime
 
 
-# ============== TimeSlot Schemas ==============
+# ============== TimeSlot Schema (for frontend filtering) ==============
 class TimeSlot(BaseModel):
+    """Represents a booked time slot for frontend filtering"""
+
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
+
+    id: str  # booking id
+    owner_id: str
+    start_time: UtcDatetime
+    end_time: UtcDatetime
+    is_booked: bool = True
+
+
+# ============== Booking Schemas ==============
+class Booking(BaseModel):
     model_config = ConfigDict(
         from_attributes=True, alias_generator=to_camel, populate_by_name=True
     )
 
     id: str
+    event_type_id: str
     owner_id: str
+    booker_id: str
     start_time: UtcDatetime
     end_time: UtcDatetime
-    is_booked: bool
+    notes: str | None = None
+    status: BookingStatus
     created_at: UtcDatetime
 
 
-class TimeSlotCreate(BaseModel):
+class BookingWithDetails(Booking):
+    event_type: EventType
+    booker: Booker
+
+
+class BookingCreate(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
+    event_type_id: str
     owner_id: str
     start_time: datetime
+    booker_name: str
+    booker_email: str
+    booker_phone: str | None = None
+    notes: str | None = None
 
     @field_validator("start_time", mode="before")
     @classmethod
@@ -81,32 +155,3 @@ class TimeSlotCreate(BaseModel):
                 dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
             return dt
         return value
-
-
-# ============== Booking Schemas ==============
-class Booking(BaseModel):
-    model_config = ConfigDict(
-        from_attributes=True, alias_generator=to_camel, populate_by_name=True
-    )
-
-    id: str
-    time_slot_id: str
-    booker_id: str
-    notes: str | None = None
-    status: BookingStatus
-    created_at: UtcDatetime
-
-
-class BookingWithDetails(Booking):
-    time_slot: TimeSlot
-    booker: Booker
-
-
-class BookingCreate(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-
-    time_slot_id: str
-    booker_name: str
-    booker_email: str
-    booker_phone: str | None = None
-    notes: str | None = None

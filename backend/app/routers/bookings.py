@@ -1,9 +1,11 @@
+from datetime import datetime, timedelta
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_, or_
 
 from app.database import get_db
-from app.models import Booker, Booking, TimeSlot
+from app.models import Booker, Booking, EventType, Owner
 from app.schemas import (
     Booking as BookingSchema,
     BookingWithDetails,
@@ -15,16 +17,60 @@ from app.schemas import (
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 
+def check_time_conflict(
+    db: Session,
+    owner_id: str,
+    start_time: datetime,
+    end_time: datetime,
+    exclude_booking_id: str | None = None,
+) -> bool:
+    """
+    Check if there's a confirmed booking that conflicts with the given time range.
+    Returns True if conflict exists.
+    """
+    query = db.query(Booking).filter(
+        Booking.owner_id == owner_id,
+        Booking.status == "confirmed",
+        or_(
+            # New booking starts during existing booking
+            and_(
+                Booking.start_time <= start_time,
+                Booking.end_time > start_time,
+            ),
+            # New booking ends during existing booking
+            and_(
+                Booking.start_time < end_time,
+                Booking.end_time >= end_time,
+            ),
+            # New booking completely contains existing booking
+            and_(
+                Booking.start_time >= start_time,
+                Booking.end_time <= end_time,
+            ),
+        ),
+    )
+
+    if exclude_booking_id:
+        query = query.filter(Booking.id != exclude_booking_id)
+
+    return query.first() is not None
+
+
 @router.get(
     "",
     response_model=list[BookingWithDetails],
     responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
 )
 def list_bookings(
-    owner_id: Annotated[str | None, Query(description="ID владельца")] = None,
-    booker_id: Annotated[str | None, Query(description="ID записывающегося")] = None,
+    owner_id: Annotated[str, Query(alias="ownerId", description="ID владельца")],
     status: Annotated[
-        BookingStatus | None, Query(description="Статус бронирования")
+        BookingStatus | None, Query(alias="status", description="Статус бронирования")
+    ] = None,
+    date_from: Annotated[
+        datetime | None, Query(alias="dateFrom", description="Начальная дата")
+    ] = None,
+    date_to: Annotated[
+        datetime | None, Query(alias="dateTo", description="Конечная дата")
     ] = None,
     db: Session = Depends(get_db),
 ):
@@ -32,15 +78,17 @@ def list_bookings(
     Получить список бронирований с деталями.
     """
     query = db.query(Booking).options(
-        joinedload(Booking.time_slot), joinedload(Booking.booker)
+        joinedload(Booking.event_type), joinedload(Booking.booker)
     )
 
-    if owner_id:
-        query = query.join(TimeSlot).filter(TimeSlot.owner_id == owner_id)
-    if booker_id:
-        query = query.filter(Booking.booker_id == booker_id)
+    query = query.filter(Booking.owner_id == owner_id)
+
     if status:
         query = query.filter(Booking.status == status)
+    if date_from:
+        query = query.filter(Booking.start_time >= date_from)
+    if date_to:
+        query = query.filter(Booking.start_time <= date_to)
 
     return query.all()
 
@@ -60,16 +108,27 @@ def create_booking(data: BookingCreate, db: Session = Depends(get_db)):
     """
     Создать новое бронирование.
     """
-    # Check if time slot exists
-    time_slot = db.query(TimeSlot).filter(TimeSlot.id == data.time_slot_id).first()
-    if not time_slot:
+    # Check if event type exists
+    event_type = db.query(EventType).filter(EventType.id == data.event_type_id).first()
+    if not event_type:
         raise HTTPException(
             status_code=404,
-            detail={"code": "NOT_FOUND", "message": "Time slot not found"},
+            detail={"code": "NOT_FOUND", "message": "Event type not found"},
         )
 
-    # Check if time slot is already booked
-    if time_slot.is_booked:
+    # Check if owner exists
+    owner = db.query(Owner).filter(Owner.id == data.owner_id).first()
+    if not owner:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "NOT_FOUND", "message": "Owner not found"},
+        )
+
+    # Calculate end time based on event type duration
+    end_time = data.start_time + timedelta(minutes=event_type.duration)
+
+    # Check for time conflicts
+    if check_time_conflict(db, data.owner_id, data.start_time, end_time):
         raise HTTPException(
             status_code=409,
             detail={"code": "CONFLICT", "message": "Time slot already booked"},
@@ -79,21 +138,23 @@ def create_booking(data: BookingCreate, db: Session = Depends(get_db)):
     booker = db.query(Booker).filter(Booker.email == data.booker_email).first()
     if not booker:
         booker = Booker(
-            name=data.booker_name, email=data.booker_email, phone=data.booker_phone
+            name=data.booker_name,
+            email=data.booker_email,
+            phone=data.booker_phone,
         )
         db.add(booker)
         db.flush()
 
     # Create booking
     booking = Booking(
-        time_slot_id=data.time_slot_id,
+        event_type_id=data.event_type_id,
+        owner_id=data.owner_id,
         booker_id=booker.id,
+        start_time=data.start_time,
+        end_time=end_time,
         notes=data.notes,
         status="confirmed",
     )
-
-    # Mark time slot as booked
-    time_slot.is_booked = True
 
     db.add(booking)
     db.commit()
@@ -113,7 +174,7 @@ def get_booking(id: str, db: Session = Depends(get_db)):
     """
     booking = (
         db.query(Booking)
-        .options(joinedload(Booking.time_slot), joinedload(Booking.booker))
+        .options(joinedload(Booking.event_type), joinedload(Booking.booker))
         .filter(Booking.id == id)
         .first()
     )
@@ -156,11 +217,6 @@ def cancel_booking(id: str, db: Session = Depends(get_db)):
 
     # Update booking status
     booking.status = "cancelled"
-
-    # Free the time slot
-    time_slot = db.query(TimeSlot).filter(TimeSlot.id == booking.time_slot_id).first()
-    if time_slot:
-        time_slot.is_booked = False
 
     db.commit()
     db.refresh(booking)

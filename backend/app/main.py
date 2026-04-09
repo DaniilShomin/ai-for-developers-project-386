@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
-from app.routers import bookings, timeslots
+from app.routers import bookings, event_types, owners, timeslots
 from app.config import settings
 
 # Initialize database
@@ -24,6 +24,8 @@ app.add_middleware(
 )
 
 # Include routers with API prefix
+app.include_router(owners.router, prefix=settings.api_prefix)
+app.include_router(event_types.router, prefix=settings.api_prefix)
 app.include_router(bookings.router, prefix=settings.api_prefix)
 app.include_router(timeslots.router, prefix=settings.api_prefix)
 
