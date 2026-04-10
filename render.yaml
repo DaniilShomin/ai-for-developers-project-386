@@ -24,11 +24,11 @@ services:
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
     envVars:
-      - key: VITE_BACKEND_URL
+      - key: VITE_BACKEND_HOST
         fromService:
           name: booking-api
           type: web
-          property: url
+          property: host
     rootDir: frontend
     routes:
       - type: rewrite
