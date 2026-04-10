@@ -84,6 +84,36 @@ npm run prism:proxy  # Proxy + validation on :8080
 - Frontend builds to `frontend/dist/` (Vite default)
 - Python linting: ruff only, no mypy configured
 
+## Docker Deployment
+
+```bash
+# Production deployment
+docker-compose up -d              # Start all services
+docker-compose down               # Stop services
+docker-compose down -v            # Stop + remove volume (⚠️ deletes DB)
+docker-compose logs -f            # View logs
+docker-compose ps               # Check status
+```
+
+- **Frontend**: http://localhost:80 (nginx serving built React app)
+- **Backend API**: http://localhost:8000 (FastAPI + uvicorn)
+- **Database**: SQLite in Docker volume `booking-data` (persistent)
+- **API routing**: `/api/*` proxied from nginx → backend
+
+### Docker Structure
+
+- `docker-compose.yml` - Production orchestration
+- `backend/Dockerfile` - Python 3.11 slim, multistage build
+- `frontend/Dockerfile` - Node 20 build → nginx:alpine
+- `frontend/nginx.conf` - gzip, /api proxy, SPA routing
+- `.env.docker` - Configuration template
+
+### Environment Variables
+
+Copy `.env.docker` to `.env` and customize:
+- `ALLOWED_ORIGINS` - CORS origins (default: `*`)
+- `DATABASE_URL` - SQLite path (default: `/app/data/bookings.db`)
+
 ## Testing
 
 - Backend: `cd backend && python3 -m pytest -v`
