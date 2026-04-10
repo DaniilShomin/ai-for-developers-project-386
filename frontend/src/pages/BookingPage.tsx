@@ -10,7 +10,6 @@ import {
   Stack,
   Loader,
   Alert,
-  ActionIcon,
   TextInput,
   Grid,
   ScrollArea,
@@ -19,8 +18,6 @@ import {
 } from '@mantine/core'
 import { Calendar } from '@mantine/dates'
 import {
-  IconChevronLeft,
-  IconChevronRight,
   IconArrowLeft,
   IconArrowRight,
   IconAlertCircle,
@@ -250,14 +247,6 @@ export function BookingPage() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handlePrevMonth = () => {
-    setCurrentMonth(dayjs(currentMonth).subtract(1, 'month').toDate())
-  }
-
-  const handleNextMonth = () => {
-    setCurrentMonth(dayjs(currentMonth).add(1, 'month').toDate())
   }
 
   const formatDuration = (minutes: number): string => {

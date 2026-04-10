@@ -15,8 +15,8 @@ import type {
 // Get backend URL from env (for production) or use relative path (for local dev)
 // VITE_BACKEND_URL - full URL (e.g., https://api.example.com)
 // VITE_BACKEND_HOST - hostname only (e.g., api.example.com), used by Render Blueprint
-const BACKEND_HOST = import.meta.env.VITE_BACKEND_HOST
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (BACKEND_HOST ? `https://${BACKEND_HOST}` : '')
+const BACKEND_HOST = (import.meta as any).env.VITE_BACKEND_HOST
+const BACKEND_URL = (import.meta as any).env.VITE_BACKEND_URL || (BACKEND_HOST ? `https://${BACKEND_HOST}` : '')
 const API_BASE_URL = `${BACKEND_URL}/api/v1`
 
 class ApiClient {
