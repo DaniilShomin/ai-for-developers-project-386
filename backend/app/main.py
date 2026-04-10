@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -5,10 +7,16 @@ from app.database import init_db
 from app.routers import bookings, event_types, owners, timeslots
 from app.config import settings
 
-# Initialize database
-init_db()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize database on startup
+    init_db()
+    yield
+
 
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.api_title,
     description=settings.api_description,
     version=settings.api_version,
