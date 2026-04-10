@@ -12,7 +12,9 @@ import type {
   TimeSlot,
 } from '@/types/api'
 
-const API_BASE_URL = '/api/v1'
+// Get backend URL from env (for production) or use relative path (for local dev)
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || ''
+const API_BASE_URL = `${BACKEND_URL}/api/v1`
 
 class ApiClient {
   private async request<T>(
