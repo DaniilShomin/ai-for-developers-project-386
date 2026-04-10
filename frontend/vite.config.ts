@@ -27,5 +27,9 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    define: {
+      // Enable MSW in development mode
+      'import.meta.env.VITE_ENABLE_MSW': JSON.stringify(mode === 'development' || env.VITE_ENABLE_MSW === 'true'),
+    },
   }
 })

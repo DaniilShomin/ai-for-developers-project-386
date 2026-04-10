@@ -1,4 +1,4 @@
-.PHONY: help install install-backend install-frontend dev dev-backend dev-frontend build build-frontend lint lint-backend format test test-backend clean db-init
+.PHONY: help install install-backend install-frontend install-playwright dev dev-backend dev-frontend build build-frontend lint lint-backend format test test-backend test-frontend clean db-init
 
 # Default values (can be overridden via .env or environment variables)
 BACKEND_PORT ?= 8000
@@ -26,6 +26,7 @@ help:
 	@echo "  make format-check     - Check Python code formatting"
 	@echo "  make test             - Run all tests"
 	@echo "  make test-backend     - Run backend tests with pytest"
+	@echo "  make test-frontend    - Run Playwright E2E tests"
 	@echo "  make clean            - Clean cache files and artifacts"
 	@echo ""
 	@echo "Environment variables (or .env file):"
@@ -79,12 +80,23 @@ format-check:
 	@echo "Checking Python code formatting..."
 	ruff format --check backend/
 
+# Installation with Playwright
+install: install-backend install-frontend install-playwright
+
+install-playwright:
+	@echo "Installing Playwright browsers..."
+	cd frontend && npx playwright install chromium
+
 # Testing
-test: test-backend
+test: test-backend test-frontend
 
 test-backend:
 	@echo "Running backend tests..."
 	cd backend && python3 -m pytest -v 2>/dev/null || echo "No tests found"
+
+test-frontend:
+	@echo "Running Playwright E2E tests..."
+	cd frontend && npm run test:e2e
 
 # Cleanup
 clean:
