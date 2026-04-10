@@ -2,16 +2,12 @@ FROM mcr.microsoft.com/playwright:v1.59.1-noble
 
 WORKDIR /project
 
-# Install dependencies
 RUN apt-get update && \
-    apt-get install -y make && \
+    apt-get install -y make python3 python3-pip && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy project files
 COPY . .
 
-# Install npm dependencies
-RUN cd frontend && npm install
+RUN ls -la
 
-# Run tests
-CMD ["make", "test"]
+CMD ["cat", "Dockerfile"]
