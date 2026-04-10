@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { gotoAndWait } from './utils';
 
 test.describe('Events Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/events');
+    await gotoAndWait(page, '/events');
   });
 
   test('отображает заголовок страницы', async ({ page }) => {

@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
 import dayjs from 'dayjs';
+import { gotoAndWait } from './utils';
 
 test.describe('Booking Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/booking');
+    await gotoAndWait(page, '/booking');
   });
 
   test('отображает заголовок выбора типа встречи', async ({ page }) => {

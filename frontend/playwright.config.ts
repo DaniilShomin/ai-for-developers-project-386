@@ -22,5 +22,9 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
+    env: {
+      // Enable MSW in browser for tests
+      VITE_ENABLE_MSW: 'true',
+    },
   },
 });
