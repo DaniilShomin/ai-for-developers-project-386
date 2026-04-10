@@ -10,4 +10,4 @@ COPY . .
 
 RUN ls -la
 
-CMD ["cat", "Dockerfile"]
+CMD ["make", "test"]
