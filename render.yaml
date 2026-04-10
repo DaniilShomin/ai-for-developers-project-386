@@ -8,7 +8,7 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        value: sqlite:///app/data/bookings.db
+        value: sqlite:///./bookings.db
       - key: ALLOWED_ORIGINS
         value: "*"
       - key: API_PREFIX
