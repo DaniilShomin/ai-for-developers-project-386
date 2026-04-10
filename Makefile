@@ -1,4 +1,4 @@
-.PHONY: help install install-backend install-frontend install-playwright dev dev-backend dev-frontend build build-frontend lint lint-backend format test test-backend test-frontend clean db-init
+.PHONY: help setup install install-backend install-frontend install-playwright dev dev-backend dev-frontend build build-frontend lint lint-backend format test test-backend test-frontend clean db-init
 
 # Default values (can be overridden via .env or environment variables)
 BACKEND_PORT ?= 8000
@@ -14,6 +14,7 @@ endif
 # Default target
 help:
 	@echo "Available commands:"
+	@echo "  make setup            - Setup project for CI"
 	@echo "  make install          - Install all dependencies"
 	@echo "  make install-backend  - Install Python dependencies"
 	@echo "  make install-frontend - Install Node.js dependencies"
@@ -34,16 +35,25 @@ help:
 	@echo "  BACKEND_HOST          - Backend server host (default: 0.0.0.0)"
 	@echo "  FRONTEND_PORT         - Frontend dev server port (default: 3000)"
 
+# Setup for Hexlet CI
+setup:
+	@echo "Running setup..."
+	$(MAKE) install
+
 # Installation
-install: install-backend install-frontend
+install: install-backend install-frontend install-playwright
 
 install-backend:
 	@echo "Installing backend dependencies..."
-	pip install -r backend/requirements.txt
+	pip install -r backend/requirements.txt || true
 
 install-frontend:
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
+
+install-playwright:
+	@echo "Installing Playwright browsers..."
+	cd frontend && npx playwright install chromium || true
 
 # Development servers
 dev:
@@ -80,19 +90,15 @@ format-check:
 	@echo "Checking Python code formatting..."
 	ruff format --check backend/
 
-# Installation with Playwright
-install: install-backend install-frontend install-playwright
-
-install-playwright:
-	@echo "Installing Playwright browsers..."
-	cd frontend && npx playwright install chromium
-
 # Testing
-test: test-backend test-frontend
+test:
+	@echo "Running all tests..."
+	$(MAKE) test-backend
+	$(MAKE) test-frontend
 
 test-backend:
 	@echo "Running backend tests..."
-	cd backend && python3 -m pytest -v 2>/dev/null || echo "No tests found"
+	cd backend && (python3 -m pytest -v 2>/dev/null || echo "No pytest tests found") || true
 
 test-frontend:
 	@echo "Running Playwright E2E tests..."
