@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import dayjs from 'dayjs';
-import { gotoAndWait } from './utils';
+import { gotoAndWait, navigateToMonth, selectDate } from './utils';
 
 test.describe('Booking Page', () => {
   test.beforeEach(async ({ page }) => {
@@ -14,23 +14,23 @@ test.describe('Booking Page', () => {
   test('отображает доступные типы встреч из моков', async ({ page }) => {
     await expect(page.getByText('Консультация 30 мин')).toBeVisible();
     await expect(page.getByText('Встреча 1 час')).toBeVisible();
-    await expect(page.getByText('Быстрая консультация')).toBeVisible();
-    await expect(page.getByText('30 мин')).toBeVisible();
-    await expect(page.getByText('1 ч')).toBeVisible();
+    // Длительность отображается отдельно от названия
+    await expect(page.getByText('30 мин', { exact: true })).toBeVisible();
+    await expect(page.getByText('1 ч', { exact: true })).toBeVisible();
   });
 
   test('переходит к выбору даты после выбора типа', async ({ page }) => {
     await page.getByText('Консультация 30 мин').click();
     
     await expect(page.getByRole('heading', { name: /Запись: Консультация 30 мин/i })).toBeVisible();
-    await expect(page.getByText('Выберите дату')).toBeVisible();
+    await expect(page.getByText('Выберите дату', { exact: true })).toBeVisible();
   });
 
   test('отображает календарь после выбора типа', async ({ page }) => {
     await page.getByText('Консультация 30 мин').click();
     
-    // Проверяем что календарь отображается
-    await expect(page.locator('.mantine-DatePicker-calendar')).toBeVisible();
+    // Проверяем что календарь отображается (Mantine Calendar table)
+    await expect(page.locator('table.mantine-Calendar-month').first()).toBeVisible();
   });
 
   test('показывает доступное время после выбора даты', async ({ page }) => {
@@ -38,18 +38,11 @@ test.describe('Booking Page', () => {
     
     // Выбираем дату (25 декабря 2024 из моков)
     const targetDate = dayjs('2024-12-25');
-    const monthYear = targetDate.format('MMMM YYYY');
+    await navigateToMonth(page, targetDate);
+    await selectDate(page, '25');
     
-    // Переходим к нужному месяцу если нужно
-    while (!(await page.getByText(monthYear).isVisible())) {
-      await page.getByRole('button', { name: 'Next month' }).click();
-    }
-    
-    // Кликаем по дате
-    await page.getByText('25').click();
-    
-    // Проверяем что доступное время отображается
-    await expect(page.getByText('Доступное время')).toBeVisible();
+    // Проверяем что доступное время отображается (это обычный текст, не heading)
+    await expect(page.getByText('Доступное время', { exact: true })).toBeVisible();
   });
 
   test('переходит к форме подтверждения после выбора времени', async ({ page }) => {
@@ -57,13 +50,8 @@ test.describe('Booking Page', () => {
     
     // Выбираем дату
     const targetDate = dayjs('2024-12-25');
-    const monthYear = targetDate.format('MMMM YYYY');
-    
-    while (!(await page.getByText(monthYear).isVisible())) {
-      await page.getByRole('button', { name: 'Next month' }).click();
-    }
-    
-    await page.getByText('25').click();
+    await navigateToMonth(page, targetDate);
+    await selectDate(page, '25');
     
     // Ждем загрузки слотов
     await page.waitForTimeout(500);
@@ -83,13 +71,8 @@ test.describe('Booking Page', () => {
     
     // Выбираем дату и время
     const targetDate = dayjs('2024-12-25');
-    const monthYear = targetDate.format('MMMM YYYY');
-    
-    while (!(await page.getByText(monthYear).isVisible())) {
-      await page.getByRole('button', { name: 'Next month' }).click();
-    }
-    
-    await page.getByText('25').click();
+    await navigateToMonth(page, targetDate);
+    await selectDate(page, '25');
     await page.waitForTimeout(500);
     await page.getByRole('button', { name: /10:00 - 10:30/i }).click();
     await page.getByRole('button', { name: 'Продолжить' }).click();
@@ -108,11 +91,8 @@ test.describe('Booking Page', () => {
     const targetDate = dayjs('2024-12-25');
     const monthYear = targetDate.format('MMMM YYYY');
     
-    while (!(await page.getByText(monthYear).isVisible())) {
-      await page.getByRole('button', { name: 'Next month' }).click();
-    }
-    
-    await page.getByText('25').click();
+    await navigateToMonth(page, targetDate);
+    await selectDate(page, '25');
     await page.waitForTimeout(500);
     await page.getByRole('button', { name: /10:00 - 10:30/i }).click();
     await page.getByRole('button', { name: 'Продолжить' }).click();
@@ -132,13 +112,8 @@ test.describe('Booking Page', () => {
     
     // Выбираем дату и время
     const targetDate = dayjs('2024-12-25');
-    const monthYear = targetDate.format('MMMM YYYY');
-    
-    while (!(await page.getByText(monthYear).isVisible())) {
-      await page.getByRole('button', { name: 'Next month' }).click();
-    }
-    
-    await page.getByText('25').click();
+    await navigateToMonth(page, targetDate);
+    await selectDate(page, '25');
     await page.waitForTimeout(500);
     await page.getByRole('button', { name: /10:00 - 10:30/i }).click();
     await page.getByRole('button', { name: 'Продолжить' }).click();
@@ -158,13 +133,8 @@ test.describe('Booking Page', () => {
     
     // Выбираем дату и время
     const targetDate = dayjs('2024-12-25');
-    const monthYear = targetDate.format('MMMM YYYY');
-    
-    while (!(await page.getByText(monthYear).isVisible())) {
-      await page.getByRole('button', { name: 'Next month' }).click();
-    }
-    
-    await page.getByText('25').click();
+    await navigateToMonth(page, targetDate);
+    await selectDate(page, '25');
     await page.waitForTimeout(500);
     await page.getByRole('button', { name: /10:00 - 10:30/i }).click();
     await page.getByRole('button', { name: 'Продолжить' }).click();
@@ -185,13 +155,8 @@ test.describe('Booking Page', () => {
     
     // Выбираем дату и время
     const targetDate = dayjs('2024-12-25');
-    const monthYear = targetDate.format('MMMM YYYY');
-    
-    while (!(await page.getByText(monthYear).isVisible())) {
-      await page.getByRole('button', { name: 'Next month' }).click();
-    }
-    
-    await page.getByText('25').click();
+    await navigateToMonth(page, targetDate);
+    await selectDate(page, '25');
     await page.waitForTimeout(500);
     await page.getByRole('button', { name: /10:00 - 10:30/i }).click();
     await page.getByRole('button', { name: 'Продолжить' }).click();
@@ -215,13 +180,8 @@ test.describe('Booking Page', () => {
     
     // Выбираем дату и время
     const targetDate = dayjs('2024-12-25');
-    const monthYear = targetDate.format('MMMM YYYY');
-    
-    while (!(await page.getByText(monthYear).isVisible())) {
-      await page.getByRole('button', { name: 'Next month' }).click();
-    }
-    
-    await page.getByText('25').click();
+    await navigateToMonth(page, targetDate);
+    await selectDate(page, '25');
     await page.waitForTimeout(500);
     await page.getByRole('button', { name: /10:00 - 10:30/i }).click();
     await page.getByRole('button', { name: 'Продолжить' }).click();

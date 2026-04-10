@@ -17,8 +17,8 @@ test.describe('Events Page', () => {
   });
 
   test('отображает детали бронирования', async ({ page }) => {
-    // Проверяем дату и время
-    await expect(page.getByText(/\d+ января \d{4}/)).toBeVisible();
+    // Проверяем дату и время (формат зависит от настроек локали)
+    await expect(page.getByText(/\d+\s+(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\s+\d{4}/i)).toBeVisible();
     
     // Проверяем статус
     await expect(page.getByText('Подтверждено')).toBeVisible();

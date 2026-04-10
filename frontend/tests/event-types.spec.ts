@@ -17,8 +17,8 @@ test.describe('Event Types Page', () => {
   });
 
   test('отображает длительность событий', async ({ page }) => {
-    await expect(page.getByText('30 мин')).toBeVisible();
-    await expect(page.getByText('1 ч')).toBeVisible();
+    await expect(page.getByText('30 мин', { exact: true })).toBeVisible();
+    await expect(page.getByText('1 ч', { exact: true })).toBeVisible();
   });
 
   test('открывает модальное окно для создания типа', async ({ page }) => {
@@ -36,8 +36,8 @@ test.describe('Event Types Page', () => {
     await page.getByLabel('Название').fill('Тестовая встреча');
     await page.getByLabel('Описание').fill('Описание для теста');
     
-    // Отправляем форму
-    await page.getByRole('button', { name: 'Создать' }).click();
+    // Отправляем форму (кнопка в модалке имеет aria-label "Создать")
+    await page.getByRole('button', { name: 'Создать', exact: true }).click();
     
     // Проверяем что новый тип появился в списке
     await expect(page.getByText('Тестовая встреча')).toBeVisible();
@@ -49,7 +49,7 @@ test.describe('Event Types Page', () => {
     
     // Очищаем длительность (оставляем по умолчанию)
     // Пытаемся создать без названия
-    await page.getByRole('button', { name: 'Создать' }).click();
+    await page.getByRole('button', { name: 'Создать', exact: true }).click();
     
     // Проверяем что модалка всё ещё открыта (не закрылась из-за ошибки)
     await expect(page.getByRole('dialog')).toBeVisible();
@@ -57,8 +57,9 @@ test.describe('Event Types Page', () => {
 
   test('открывает модальное окно для редактирования', async ({ page }) => {
     // Нажимаем на иконку редактирования первого элемента
-    const editButtons = page.getByRole('button', { name: '' }).filter({ has: page.locator('[data-tabler-icon="IconEdit"]') });
-    await editButtons.first().click();
+    // Кнопки редактирования - это пустые кнопки с SVG иконкой карандаша (IconEdit)
+    const editButtons = page.locator('button').filter({ has: page.locator('svg') }).filter({ hasText: /^$/ });
+    await editButtons.nth(0).click(); // Первая кнопка редактирования
     
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Редактировать тип' })).toBeVisible();
@@ -72,8 +73,9 @@ test.describe('Event Types Page', () => {
     page.once('dialog', dialog => dialog.accept());
     
     // Нажимаем на иконку удаления первого элемента
-    const deleteButtons = page.getByRole('button', { name: '' }).filter({ has: page.locator('[data-tabler-icon="IconTrash"]') });
-    await deleteButtons.first().click();
+    // Кнопки удаления - это пустые кнопки с SVG иконкой мусорки (IconTrash)
+    const deleteButtons = page.locator('button').filter({ has: page.locator('svg') }).filter({ hasText: /^$/ });
+    await deleteButtons.nth(1).click(); // Вторая кнопка - это удаление первого элемента
     
     // Проверяем что элемент удален
     await expect(page.getByText('Консультация 30 мин')).not.toBeVisible();
