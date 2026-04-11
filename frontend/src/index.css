@@ -22,6 +22,17 @@ body {
   }
 }
 
+@media (max-width: 768px) {
+  .booking-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .booking-grid > * {
+    min-height: auto;
+  }
+}
+
 .booking-panel {
   height: fit-content;
 }
@@ -109,4 +120,34 @@ body {
 /* Hover state */
 .custom-calendar .mantine-Calendar-day:hover:not([data-selected]):not([data-disabled]) {
   background-color: #ffedd5;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  /* Smaller calendar days for mobile */
+  .custom-calendar .mantine-Calendar-day {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+    margin: 1px;
+  }
+
+  /* Reduce calendar header padding */
+  .custom-calendar .mantine-Calendar-monthHeader {
+    padding: 8px 4px;
+  }
+
+  /* Smaller weekday labels */
+  .custom-calendar .mantine-Calendar-weekday {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Even smaller for very small screens */
+  .custom-calendar .mantine-Calendar-day {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
 }

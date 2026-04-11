@@ -8,6 +8,7 @@ import {
   Group,
   LoadingOverlay,
   Modal,
+  ScrollArea,
   Stack,
   Table,
   Text,
@@ -17,6 +18,7 @@ import {
   NumberInput,
   ActionIcon,
 } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
   IconEdit,
@@ -34,6 +36,7 @@ interface EventTypeFormData {
 }
 
 export function EventTypesPage() {
+  const isMobile = useMediaQuery('(max-width: 768px)')
   const [owner, setOwner] = useState<Owner | null>(null)
   const [eventTypes, setEventTypes] = useState<EventType[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -209,51 +212,53 @@ export function EventTypesPage() {
           </Stack>
         </Card>
       ) : (
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Название</Table.Th>
-              <Table.Th>Описание</Table.Th>
-              <Table.Th>Длительность</Table.Th>
-              <Table.Th style={{ width: 100 }}>Действия</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {eventTypes.map(eventType => (
-              <Table.Tr key={eventType.id}>
-                <Table.Td>
-                  <Text fw={500}>{eventType.title}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" c="dimmed" lineClamp={2}>
-                    {eventType.description || '—'}
-                  </Text>
-                </Table.Td>
-                <Table.Td>
-                  <Text>{formatDuration(eventType.duration)}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Group gap={4}>
-                    <ActionIcon
-                      variant="subtle"
-                      color="blue"
-                      onClick={() => handleEdit(eventType)}
-                    >
-                      <IconEdit size={16} />
-                    </ActionIcon>
-                    <ActionIcon
-                      variant="subtle"
-                      color="red"
-                      onClick={() => handleDelete(eventType)}
-                    >
-                      <IconTrash size={16} />
-                    </ActionIcon>
-                  </Group>
-                </Table.Td>
+        <ScrollArea>
+          <Table striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Название</Table.Th>
+                <Table.Th>Описание</Table.Th>
+                <Table.Th>Длительность</Table.Th>
+                <Table.Th style={{ width: 100 }}>Действия</Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Thead>
+            <Table.Tbody>
+              {eventTypes.map(eventType => (
+                <Table.Tr key={eventType.id}>
+                  <Table.Td>
+                    <Text fw={500}>{eventType.title}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm" c="dimmed" lineClamp={2}>
+                      {eventType.description || '—'}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text>{formatDuration(eventType.duration)}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Group gap={4}>
+                      <ActionIcon
+                        variant="subtle"
+                        color="blue"
+                        onClick={() => handleEdit(eventType)}
+                      >
+                        <IconEdit size={16} />
+                      </ActionIcon>
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        onClick={() => handleDelete(eventType)}
+                      >
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </Group>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </ScrollArea>
       )}
 
       <Modal
@@ -261,6 +266,7 @@ export function EventTypesPage() {
         onClose={() => setIsModalOpen(false)}
         title={editingEventType ? 'Редактировать тип' : 'Создать тип события'}
         size="md"
+        fullScreen={isMobile}
       >
         <Stack gap="md">
           <TextInput

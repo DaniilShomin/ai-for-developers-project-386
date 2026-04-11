@@ -89,8 +89,8 @@ export function EventsPage() {
 
       <Stack gap="md">
         {bookings.map(booking => (
-          <Paper key={booking.id} p="lg" radius="md" withBorder>
-            <Group justify="space-between" align="flex-start">
+          <Paper key={booking.id} p={{ base: 'md', md: 'lg' }} radius="md" withBorder>
+            <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
               <Stack gap="xs" style={{ flex: 1 }}>
                 {/* Event Type */}
                 <Text fw={600} size="lg" c="orange">

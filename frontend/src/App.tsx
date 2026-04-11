@@ -6,8 +6,15 @@ import {
   Button,
   UnstyledButton,
   Divider,
+  Menu,
 } from '@mantine/core'
-import { IconCalendarEvent, IconSettings, IconUser } from '@tabler/icons-react'
+import { useMediaQuery } from '@mantine/hooks'
+import {
+  IconCalendarEvent,
+  IconSettings,
+  IconUser,
+  IconMenu2,
+} from '@tabler/icons-react'
 import { LandingPage } from './pages/LandingPage'
 import { BookingPage } from './pages/BookingPage'
 import { EventsPage } from './pages/EventsPage'
@@ -18,6 +25,7 @@ import './index.css'
 
 function App() {
   const navigate = useNavigate()
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
     <AppShell header={{ height: 70 }} padding="md">
@@ -40,62 +48,108 @@ function App() {
             </Group>
           </UnstyledButton>
 
-          <Group gap="lg">
-            {/* Guest Actions */}
-            <Button
-              color="orange"
-              radius="xl"
-              onClick={() => navigate('/booking')}
-              styles={{
-                root: {
-                  backgroundColor: '#f97316',
-                },
-              }}
-            >
-              Записаться
-            </Button>
+          {isMobile ? (
+            <Group gap="sm">
+              <Button
+                color="orange"
+                radius="xl"
+                onClick={() => navigate('/booking')}
+                size="sm"
+                styles={{
+                  root: {
+                    backgroundColor: '#f97316',
+                  },
+                }}
+              >
+                Записаться
+              </Button>
 
-            <Divider orientation="vertical" h={24} />
+              <Menu position="bottom-end" withArrow>
+                <Menu.Target>
+                  <Button variant="subtle" size="sm" leftSection={<IconMenu2 size={18} />}>
+                    Ещё
+                  </Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item
+                    leftSection={<IconCalendarEvent size={16} />}
+                    onClick={() => navigate('/events')}
+                  >
+                    Предстоящие события
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<IconSettings size={16} />}
+                    onClick={() => navigate('/event-types')}
+                  >
+                    Типы событий
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<IconUser size={16} />}
+                    onClick={() => navigate('/owner')}
+                  >
+                    Настройки
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            </Group>
+          ) : (
+            <Group gap="lg">
+              {/* Guest Actions */}
+              <Button
+                color="orange"
+                radius="xl"
+                onClick={() => navigate('/booking')}
+                styles={{
+                  root: {
+                    backgroundColor: '#f97316',
+                  },
+                }}
+              >
+                Записаться
+              </Button>
 
-            {/* Owner/Navigation Actions */}
-            <UnstyledButton
-              onClick={() => navigate('/events')}
-              style={{
-                color: '#9ca3af',
-                fontWeight: 500,
-              }}
-            >
-              Предстоящие события
-            </UnstyledButton>
+              <Divider orientation="vertical" h={24} />
 
-            <UnstyledButton
-              onClick={() => navigate('/event-types')}
-              style={{
-                color: '#9ca3af',
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
-            >
-              <IconSettings size={16} />
-              Типы событий
-            </UnstyledButton>
+              {/* Owner/Navigation Actions */}
+              <UnstyledButton
+                onClick={() => navigate('/events')}
+                style={{
+                  color: '#9ca3af',
+                  fontWeight: 500,
+                }}
+              >
+                Предстоящие события
+              </UnstyledButton>
 
-            <UnstyledButton
-              onClick={() => navigate('/owner')}
-              style={{
-                color: '#9ca3af',
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
-            >
-              <IconUser size={16} />
-              Настройки
-            </UnstyledButton>
-          </Group>
+              <UnstyledButton
+                onClick={() => navigate('/event-types')}
+                style={{
+                  color: '#9ca3af',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <IconSettings size={16} />
+                Типы событий
+              </UnstyledButton>
+
+              <UnstyledButton
+                onClick={() => navigate('/owner')}
+                style={{
+                  color: '#9ca3af',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <IconUser size={16} />
+                Настройки
+              </UnstyledButton>
+            </Group>
+          )}
         </Group>
       </AppShell.Header>
 
