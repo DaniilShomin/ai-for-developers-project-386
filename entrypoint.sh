@@ -1,12 +1,22 @@
 #!/bin/bash
 set -e
 
+# Set default port
+export PORT=${PORT:-80}
+
 # Create data directory with proper permissions
 mkdir -p /app/data
 chmod 777 /app/data
 
+# Substitute PORT in nginx configuration
+sed -i "s/\${PORT}/$PORT/g" /etc/nginx/conf.d/default.conf
+
+# Test nginx configuration
+echo "Testing nginx configuration..."
+nginx -t
+
 # Start nginx in background
-echo "Starting nginx..."
+echo "Starting nginx on port $PORT..."
 nginx
 
 # Wait a moment for nginx to initialize

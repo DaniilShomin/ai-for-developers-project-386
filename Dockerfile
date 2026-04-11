@@ -50,12 +50,12 @@ RUN rm -f /etc/nginx/sites-enabled/default
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Expose port 80 (nginx)
+# Expose dynamic port (default 80, configurable via PORT env var)
 EXPOSE 80
 
-# Healthcheck endpoint
+# Healthcheck endpoint (direct backend access on port 8000)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
 # Start both services
 CMD ["/entrypoint.sh"]
