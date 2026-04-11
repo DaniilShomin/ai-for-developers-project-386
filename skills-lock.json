@@ -16,6 +16,11 @@
       "sourceType": "github",
       "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
     },
+    "playwright-cli": {
+      "source": "microsoft/playwright-cli",
+      "sourceType": "github",
+      "computedHash": "f75195249064c00f8cc69f8df10b947ea09196a78b784c1356dd032e1bf67a36"
+    },
     "render-deploy": {
       "source": "openai/skills",
       "sourceType": "github",

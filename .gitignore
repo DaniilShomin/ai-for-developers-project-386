@@ -99,3 +99,14 @@ frontend/test-results/
 # Config backups (may contain secrets)
 config.json~
 .env~
+
+# Build artifacts
+frontend/dist/
+
+# Test screenshots
+*.png
+mobile-*.png
+
+# Playwright CLI temp data
+.playwright-cli/
+frontend/.playwright-cli/
