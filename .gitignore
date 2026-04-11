@@ -87,3 +87,15 @@ backend/bookings.db
 
 # Playwright MCP artifacts
 .playwright-mcp/
+
+# Test results
+test-results/
+frontend/test-results/
+
+# Vim backup files
+*.un~
+.*.un~
+
+# Config backups (may contain secrets)
+config.json~
+.env~
