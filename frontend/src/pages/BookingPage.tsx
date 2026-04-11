@@ -15,7 +15,9 @@ import {
   ScrollArea,
   Card,
   Textarea,
+  Badge,
 } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
 import { Calendar } from '@mantine/dates'
 import {
   IconArrowLeft,
@@ -66,6 +68,10 @@ export function BookingPage() {
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
+
+  // Mobile responsive
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const [mobileDateTimeStep, setMobileDateTimeStep] = useState<'date' | 'time'>('date')
 
   // Form states
   const [bookerName, setBookerName] = useState('')
@@ -131,6 +137,7 @@ export function BookingPage() {
     setSelectedDate(null)
     setSelectedSlot(null)
     setAvailableSlots([])
+    setMobileDateTimeStep('date')
   }
 
   const handleDateSelect = (date: Date) => {
@@ -138,6 +145,9 @@ export function BookingPage() {
     setSelectedSlot(null)
     if (selectedEventType && owner) {
       loadBookingsForDate(date, selectedEventType)
+    }
+    if (isMobile) {
+      setMobileDateTimeStep('time')
     }
   }
 
@@ -148,11 +158,21 @@ export function BookingPage() {
   const handleBack = () => {
     if (step === 'confirm') {
       setStep('select-datetime')
+      if (isMobile) {
+        setMobileDateTimeStep('time')
+      }
     } else if (step === 'select-datetime') {
-      setStep('select-event')
-      setSelectedEventType(null)
-      setSelectedDate(null)
-      setSelectedSlot(null)
+      if (isMobile && mobileDateTimeStep === 'time' && selectedDate) {
+        setMobileDateTimeStep('date')
+        setSelectedDate(null)
+        setSelectedSlot(null)
+      } else {
+        setStep('select-event')
+        setSelectedEventType(null)
+        setSelectedDate(null)
+        setSelectedSlot(null)
+        setMobileDateTimeStep('date')
+      }
     } else {
       navigate('/')
     }
@@ -440,6 +460,195 @@ export function BookingPage() {
 
   // ==================== Select Date & Time View ====================
   if (step === 'select-datetime') {
+    // Mobile wizard mode
+    if (isMobile) {
+      return (
+        <Container size="xl" py={{ base: 'md', md: 'xl' }}>
+          {/* Mobile Header with mini info */}
+          <Box mb="md">
+            <Group gap="xs" mb="xs">
+              <Badge color="orange" variant="light">
+                {selectedEventType?.title}
+              </Badge>
+              <Text size="sm" c="dimmed">
+                {selectedEventType && formatDuration(selectedEventType.duration)}
+              </Text>
+            </Group>
+            <Title order={3} style={{ fontWeight: 700 }}>
+              {mobileDateTimeStep === 'date' ? 'Выберите дату' : 'Выберите время'}
+            </Title>
+          </Box>
+
+          {/* Step 1: Date Selection */}
+          {mobileDateTimeStep === 'date' && (
+            <Stack gap="md">
+              <Paper
+                p="md"
+                radius="md"
+                withBorder
+                style={{
+                  borderColor: '#e5e7eb',
+                  background: '#fff',
+                }}
+              >
+                <Calendar
+                  locale="ru"
+                  date={currentMonth}
+                  onDateChange={setCurrentMonth}
+                  minDate={new Date()}
+                  className="custom-calendar"
+                  getDayProps={date => ({
+                    selected: selectedDate
+                      ? dayjs(date).isSame(selectedDate, 'date')
+                      : false,
+                    onClick: () => handleDateSelect(new Date(date)),
+                  })}
+                />
+              </Paper>
+
+              <Button
+                variant="outline"
+                fullWidth
+                leftSection={<IconArrowLeft size={16} />}
+                onClick={handleBack}
+                radius="md"
+              >
+                Изменить тип встречи
+              </Button>
+            </Stack>
+          )}
+
+          {/* Step 2: Time Selection */}
+          {mobileDateTimeStep === 'time' && selectedDate && (
+            <Stack gap="md">
+              <Paper
+                p="md"
+                radius="md"
+                withBorder
+                style={{
+                  borderColor: '#e5e7eb',
+                  background: '#fff',
+                }}
+              >
+                <Stack gap="md">
+                  <Group justify="space-between">
+                    <Text fw={600}>Выбранная дата</Text>
+                    <Text>{formatSelectedDate(selectedDate)}</Text>
+                  </Group>
+
+                  <Box>
+                    <Text fw={600} mb="sm">Доступное время</Text>
+
+                    {slotsLoading && (
+                      <Box py="xl" style={{ textAlign: 'center' }}>
+                        <Loader size="sm" />
+                        <Text size="sm" c="dimmed" mt="xs">
+                          Загрузка слотов...
+                        </Text>
+                      </Box>
+                    )}
+
+                    {!slotsLoading && availableSlots.length === 0 && (
+                      <Box py="xl" style={{ textAlign: 'center' }}>
+                        <Text c="dimmed">
+                          Нет доступных слотов на эту дату
+                          <br />
+                          <Text size="sm" mt="xs">
+                            Все время занято или вне рабочих часов
+                          </Text>
+                        </Text>
+                      </Box>
+                    )}
+
+                    {!slotsLoading && availableSlots.length > 0 && (
+                      <ScrollArea h={300}>
+                        <Stack gap="xs">
+                          {availableSlots.map(slot => {
+                            const isSelected = selectedSlot?.id === slot.id
+
+                            return (
+                              <Button
+                                key={slot.id}
+                                variant={isSelected ? 'filled' : 'default'}
+                                color={isSelected ? 'orange' : undefined}
+                                fullWidth
+                                justify="space-between"
+                                onClick={() => handleSlotSelect(slot)}
+                                styles={{
+                                  root: {
+                                    border: isSelected
+                                      ? 'none'
+                                      : '1px solid #e5e7eb',
+                                    backgroundColor: isSelected
+                                      ? '#f97316'
+                                      : '#fff',
+                                    color: isSelected ? '#fff' : '#000',
+                                    height: '50px',
+                                    borderRadius: '8px',
+                                  },
+                                  label: {
+                                    width: '100%',
+                                  },
+                                }}
+                              >
+                                <Group justify="space-between" w="100%" wrap="nowrap">
+                                  <span>
+                                    {dayjs(slot.startTime).format('HH:mm')} -{' '}
+                                    {dayjs(slot.endTime).format('HH:mm')}
+                                  </span>
+                                  <span
+                                    style={{
+                                      color: isSelected
+                                        ? 'rgba(255,255,255,0.8)'
+                                        : '#22c55e',
+                                      fontSize: '14px',
+                                    }}
+                                  >
+                                    Свободно
+                                  </span>
+                                </Group>
+                              </Button>
+                            )
+                          })}
+                        </Stack>
+                      </ScrollArea>
+                    )}
+                  </Box>
+                </Stack>
+              </Paper>
+
+              {/* Mobile Navigation Buttons */}
+              <Group grow>
+                <Button
+                  variant="outline"
+                  leftSection={<IconArrowLeft size={16} />}
+                  onClick={() => setMobileDateTimeStep('date')}
+                  radius="md"
+                >
+                  Изменить дату
+                </Button>
+                <Button
+                  color="orange"
+                  rightSection={<IconArrowRight size={16} />}
+                  onClick={handleContinue}
+                  disabled={!selectedSlot}
+                  radius="md"
+                  styles={{
+                    root: {
+                      backgroundColor: '#f97316',
+                    },
+                  }}
+                >
+                  Продолжить
+                </Button>
+              </Group>
+            </Stack>
+          )}
+        </Container>
+      )
+    }
+
+    // Desktop 3-panel layout
     return (
       <Container size="xl" py={40}>
         <Title order={2} mb="xl" style={{ fontWeight: 700 }}>
