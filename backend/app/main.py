@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
+from app.seed import seed_data
 from app.routers import bookings, event_types, owners, timeslots
 from app.config import settings
 
@@ -12,6 +13,8 @@ from app.config import settings
 async def lifespan(app: FastAPI):
     # Initialize database on startup
     init_db()
+    # Fill with test data if empty
+    seed_data()
     yield
 
 
