@@ -8,9 +8,9 @@ import '@mantine/core/styles.css'
 import '@mantine/dates/styles.css'
 import '@mantine/notifications/styles.css'
 
-// Start MSW worker in development or test mode
+// Start MSW worker only when explicitly enabled via env variable
 async function prepare() {
-  if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_MSW === 'true') {
+  if (import.meta.env.VITE_ENABLE_MSW === 'true') {
     const { worker } = await import('./mocks/browser')
     return worker.start({
       onUnhandledRequest: 'bypass',
