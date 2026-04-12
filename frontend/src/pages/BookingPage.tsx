@@ -656,6 +656,7 @@ export function BookingPage() {
         </Title>
 
         <Box
+          h="min(460px, 90vh)"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
