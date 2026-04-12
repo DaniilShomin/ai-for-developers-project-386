@@ -87,84 +87,125 @@ def generate_random_email(name: str) -> str:
 
 
 def seed_data():
-    """Заполняет базу тестовыми данными при первом запуске."""
+    """Заполняет базу тестовыми данными MVP (1 owner, 2 event types, 1 booker, 2 bookings)."""
     db = SessionLocal()
     try:
-        # Проверяем, есть ли уже данные
-        existing_owner = db.query(Owner).first()
-        if existing_owner:
-            print("База данных уже содержит данные, пропускаем сидинг.")
-            return
+        print("Проверка и заполнение тестовых данных MVP...")
 
-        print("Заполнение базы тестовыми данными...")
+        # Получаем или создаем владельца
+        owner = db.query(Owner).first()
+        if not owner:
+            owner_name = generate_random_name()
+            owner = Owner(
+                name=owner_name,
+                email=generate_random_email(owner_name),
+                timezone="Europe/Moscow",
+                work_start="09:00",
+                work_end="18:00",
+            )
+            db.add(owner)
+            db.flush()
+            print(f"Создан владелец: {owner.name}")
+        else:
+            print(f"Используем существующего владельца: {owner.name}")
 
-        # Создаем владельца
-        owner_name = generate_random_name()
-        owner = Owner(
-            name=owner_name,
-            email=generate_random_email(owner_name),
-            timezone="Europe/Moscow",
-            work_start="09:00",
-            work_end="18:00",
+        # Проверяем и создаем типы событий (нужно минимум 2)
+        event_types_count = (
+            db.query(EventType).filter(EventType.owner_id == owner.id).count()
         )
-        db.add(owner)
-        db.flush()  # Получаем id до коммита
+        if event_types_count < 2:
+            existing_titles = {
+                et.title
+                for et in db.query(EventType)
+                .filter(EventType.owner_id == owner.id)
+                .all()
+            }
 
-        # Создаем типы событий
-        event_type_1 = EventType(
-            title="Консультация 30 минут",
-            description="Краткая консультация по любым вопросам",
-            duration=30,
-            owner_id=owner.id,
-        )
-        event_type_2 = EventType(
-            title="Встреча 1 час",
-            description="Полноценная встреча для детального обсуждения",
-            duration=60,
-            owner_id=owner.id,
-        )
-        db.add_all([event_type_1, event_type_2])
-        db.flush()
+            if "Консультация 30 минут" not in existing_titles:
+                event_type_1 = EventType(
+                    title="Консультация 30 минут",
+                    description="Краткая консультация по любым вопросам",
+                    duration=30,
+                    owner_id=owner.id,
+                )
+                db.add(event_type_1)
+                print("Создан тип события: Консультация 30 минут")
 
-        # Создаем клиента (booker)
-        booker_name = generate_random_name()
-        booker = Booker(
-            name=booker_name,
-            email=generate_random_email(booker_name),
-            phone=f"+7{random.randint(9000000000, 9999999999)}",
-        )
-        db.add(booker)
-        db.flush()
+            if "Встреча 1 час" not in existing_titles:
+                event_type_2 = EventType(
+                    title="Встреча 1 час",
+                    description="Полноценная встреча для детального обсуждения",
+                    duration=60,
+                    owner_id=owner.id,
+                )
+                db.add(event_type_2)
+                print("Создан тип события: Встреча 1 час")
 
-        # Создаем бронирования на ближайшие дни
-        tomorrow = datetime.now().replace(
-            hour=10, minute=0, second=0, microsecond=0
-        ) + timedelta(days=1)
-        day_after = tomorrow + timedelta(days=1)
+            db.flush()
+        else:
+            print(f"Типы событий уже есть: {event_types_count}")
 
-        booking_1 = Booking(
-            event_type_id=event_type_1.id,
-            owner_id=owner.id,
-            booker_id=booker.id,
-            start_time=tomorrow,
-            end_time=tomorrow + timedelta(minutes=event_type_1.duration),
-            notes="Первая тестовая бронь",
-            status="confirmed",
-        )
+        # Получаем созданные event types
+        event_types = db.query(EventType).filter(EventType.owner_id == owner.id).all()
 
-        booking_2 = Booking(
-            event_type_id=event_type_2.id,
-            owner_id=owner.id,
-            booker_id=booker.id,
-            start_time=day_after,
-            end_time=day_after + timedelta(minutes=event_type_2.duration),
-            notes="Вторая тестовая бронь",
-            status="confirmed",
-        )
-        db.add_all([booking_1, booking_2])
+        # Проверяем и создаем booker
+        booker = db.query(Booker).first()
+        if not booker:
+            booker_name = generate_random_name()
+            booker = Booker(
+                name=booker_name,
+                email=generate_random_email(booker_name),
+                phone=f"+7{random.randint(9000000000, 9999999999)}",
+            )
+            db.add(booker)
+            db.flush()
+            print(f"Создан клиент (booker): {booker.name}")
+        else:
+            print(f"Используем существующего клиента: {booker.name}")
 
-        db.commit()
-        print("Тестовые данные успешно добавлены!")
+        # Проверяем и создаем бронирования (нужно минимум 2)
+        bookings_count = db.query(Booking).count()
+        if bookings_count < 2:
+            tomorrow = datetime.now().replace(
+                hour=10, minute=0, second=0, microsecond=0
+            ) + timedelta(days=1)
+            day_after = tomorrow + timedelta(days=1)
+
+            # Берем первые 2 event types
+            et_list = event_types[:2]
+
+            if len(et_list) >= 1:
+                booking_1 = Booking(
+                    event_type_id=et_list[0].id,
+                    owner_id=owner.id,
+                    booker_id=booker.id,
+                    start_time=tomorrow,
+                    end_time=tomorrow + timedelta(minutes=et_list[0].duration),
+                    notes="Первая тестовая бронь",
+                    status="confirmed",
+                )
+                db.add(booking_1)
+                print(f"Создана бронь: {et_list[0].title} на {tomorrow}")
+
+            if len(et_list) >= 2:
+                booking_2 = Booking(
+                    event_type_id=et_list[1].id,
+                    owner_id=owner.id,
+                    booker_id=booker.id,
+                    start_time=day_after,
+                    end_time=day_after + timedelta(minutes=et_list[1].duration),
+                    notes="Вторая тестовая бронь",
+                    status="confirmed",
+                )
+                db.add(booking_2)
+                print(f"Создана бронь: {et_list[1].title} на {day_after}")
+
+            db.commit()
+        else:
+            print(f"Бронирования уже есть: {bookings_count}")
+            db.commit()
+
+        print("Сидинг завершен!")
 
     except Exception as e:
         db.rollback()

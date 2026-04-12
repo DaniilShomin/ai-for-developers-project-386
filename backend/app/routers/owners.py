@@ -7,15 +7,14 @@ from app.schemas import Owner as OwnerSchema, OwnerUpdate, ErrorResponse
 
 router = APIRouter(prefix="/owner", tags=["Owner"])
 
-DEFAULT_OWNER_ID = "default-owner"
-
 
 def get_or_create_default_owner(db: Session) -> Owner:
-    """Get or create default owner"""
-    owner = db.query(Owner).filter(Owner.id == DEFAULT_OWNER_ID).first()
+    """Get first existing owner or create default one"""
+    # Get first owner from database (any)
+    owner = db.query(Owner).first()
     if not owner:
+        # Create default owner only if none exists
         owner = Owner(
-            id=DEFAULT_OWNER_ID,
             name="Администратор",
             email="admin@booking.local",
             timezone="Europe/Moscow",
