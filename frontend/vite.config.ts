@@ -28,8 +28,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
-      // Enable MSW in development mode
-      'import.meta.env.VITE_ENABLE_MSW': JSON.stringify(mode === 'development' || env.VITE_ENABLE_MSW === 'true'),
+      // MSW enabled only via explicit env variable, not in dev mode by default
+      'import.meta.env.VITE_ENABLE_MSW': JSON.stringify(env.VITE_ENABLE_MSW === 'true'),
     },
   }
 })
